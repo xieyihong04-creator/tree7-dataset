@@ -3,6 +3,8 @@ images/
 candidates/
 contact/
 quarantine/
+data/
+runs/
 *.zip
 *.log
 taxa.json
