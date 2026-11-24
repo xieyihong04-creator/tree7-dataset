@@ -1,6 +1,8 @@
 # tree7-dataset
 
-七個樹種／園藝植物的影像資料集**建置管線**與**對照表（manifest）**。影像本身不入庫（GitHub 單檔 100 MB、倉庫建議 <1 GB），照下面的指令可重新抓出一份完全相同結構的資料集；`manifest.csv` 已收錄目前 2,143 張影像的來源連結與授權，必要時可逐張回溯。
+七個樹種／園藝植物的影像資料集**建置管線**與**對照表（manifest）**。
+
+**影像放在 Hugging Face：**[`datasets/Xieih/tree7`](https://huggingface.co/datasets/Xieih/tree7) — 2,143 張打包成 parquet（影像嵌在欄位內，附 train/valid/test 切分），不用先抓 500 MB 就能串流訓練。本倉庫只放程式、manifest 與文件：GitHub 單檔 100 MB、倉庫建議 <1 GB，而 CC BY-NC 影像公開散布需連署名一併處理。照下面的指令也能在本機重新抓出一份相同結構的資料集；`manifest.csv` 收錄全部 2,143 張的來源連結與授權，可逐張回溯。
 
 | class | 資料夾 | 中文 | 學名 | 張數 |
 |---|---|---|---|---|
@@ -16,6 +18,22 @@
 
 ## 快速開始
 
+### A. 直接載入（推薦）
+
+```python
+from datasets import load_dataset
+
+ds = load_dataset("Xieih/tree7", token="<HF token>")   # train 1714 / valid 215 / test 214
+ds["train"][0]["image"]                                 # PIL.Image，存取時才解碼
+ds["train"].features["label"].names                    # 0..6 對應下方類別表
+```
+
+倉庫目前是 **private**，要帶 token（或先 `huggingface-cli login`）。`label` 是 `ClassLabel`、
+`image` 是 `Image()` 型別，兩者都由 parquet 內的 Hugging Face feature 簽名決定，不需要載入腳本。
+切分為分層 80/10/10（seed `20261124`），每個 split 七類皆均衡；`splits.json` 記錄於 HF 倉庫。
+
+### B. 在本機重建資料集
+
 ```bash
 pip install -r requirements.txt
 python3 collect.py --per-source 900   # 建候選索引（只存 metadata，不下載）
@@ -24,6 +42,8 @@ python3 repair_manifest.py            # 以磁盤為準重建清單並稽核
 ```
 
 `build.py` 是增量的：把 `--per-label` 調高只會補抓差額，已存在的影像與 dHash 會被重用。
+跑完後 `build_parquet.py`（存放在 HF 倉庫根目錄）可把 `images/` ＋ `manifest.jsonl` 打成與 A 相同的
+parquet 結構。
 
 ## 資料來源與篩選條件
 
