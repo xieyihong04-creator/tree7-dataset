@@ -5,6 +5,8 @@ contact/
 quarantine/
 data/
 runs/
+demo/*.onnx
+space/*.onnx
 *.zip
 *.log
 taxa.json
