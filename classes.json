@@ -1,0 +1,38 @@
+{
+  "classes": [
+    "Ficus_microcarpa",
+    "Terminalia_catappa",
+    "Araucaria_columnaris",
+    "Dypsis_lutescens",
+    "Strelitzia_reginae",
+    "Drynaria_roosii",
+    "Acalypha_wilkesiana"
+  ],
+  "class_map": {
+    "Ficus_microcarpa": 0,
+    "Terminalia_catappa": 1,
+    "Araucaria_columnaris": 2,
+    "Dypsis_lutescens": 3,
+    "Strelitzia_reginae": 4,
+    "Drynaria_roosii": 5,
+    "Acalypha_wilkesiana": 6
+  },
+  "zh": {
+    "Ficus_microcarpa": "榕樹",
+    "Terminalia_catappa": "大葉欖仁（欖仁樹）",
+    "Araucaria_columnaris": "柱狀南洋杉",
+    "Dypsis_lutescens": "散尾葵（黃椰子）",
+    "Strelitzia_reginae": "鶴望蘭（天堂鳥）",
+    "Drynaria_roosii": "槲蕨",
+    "Acalypha_wilkesiana": "紅桑（威氏鐵莧）"
+  },
+  "sci": {
+    "Ficus_microcarpa": "Ficus microcarpa",
+    "Terminalia_catappa": "Terminalia catappa",
+    "Araucaria_columnaris": "Araucaria columnaris",
+    "Dypsis_lutescens": "Dypsis lutescens",
+    "Strelitzia_reginae": "Strelitzia reginae",
+    "Drynaria_roosii": "Drynaria roosii",
+    "Acalypha_wilkesiana": "Acalypha wilkesiana"
+  }
+}

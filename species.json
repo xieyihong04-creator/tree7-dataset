@@ -1,0 +1,115 @@
+{
+  "species": [
+    {
+      "label": "Ficus_microcarpa",
+      "zh": "榕樹",
+      "sci": "Ficus microcarpa",
+      "common": [
+        "Chinese banyan",
+        "tiny-leaf fig"
+      ],
+      "syn_genera": [
+        "Urostigma"
+      ]
+    },
+    {
+      "label": "Terminalia_catappa",
+      "zh": "大葉欖仁（欖仁樹）",
+      "sci": "Terminalia catappa",
+      "common": [
+        "tropical almond",
+        "sea almond"
+      ],
+      "syn_genera": [
+        "Myrobalanus"
+      ]
+    },
+    {
+      "label": "Araucaria_columnaris",
+      "zh": "柱狀南洋杉",
+      "sci": "Araucaria columnaris",
+      "common": [
+        "Cook's pine",
+        "Columnar Norfolk Island pine"
+      ],
+      "syn_genera": [
+        "Eututa",
+        "Columbeia"
+      ]
+    },
+    {
+      "label": "Dypsis_lutescens",
+      "zh": "散尾葵（黃椰子）",
+      "sci": "Dypsis lutescens",
+      "common": [
+        "areca palm",
+        "yellow butterfly palm"
+      ],
+      "syn_genera": [
+        "Chrysalidocarpus"
+      ]
+    },
+    {
+      "label": "Strelitzia_reginae",
+      "zh": "鶴望蘭（天堂鳥）",
+      "sci": "Strelitzia reginae",
+      "common": [
+        "bird of paradise"
+      ],
+      "syn_genera": [
+        "Strelizia"
+      ]
+    },
+    {
+      "label": "Drynaria_roosii",
+      "zh": "槲蕨",
+      "sci": "Drynaria roosii",
+      "common": [
+        "basket fern",
+        "Drynaria fortunei auct."
+      ],
+      "syn_genera": [
+        "Phymatopsis",
+        "Drynaria"
+      ]
+    },
+    {
+      "label": "Acalypha_wilkesiana",
+      "zh": "紅桑（威氏鐵莧）",
+      "sci": "Acalypha wilkesiana",
+      "common": [
+        "Joseph's coat",
+        "mose's coat"
+      ],
+      "syn_genera": [
+        "Acalypha"
+      ]
+    }
+  ],
+  "commons_categories": {
+    "Ficus_microcarpa": [
+      "Ficus microcarpa",
+      "Ficus microcarpa (bonsai)"
+    ],
+    "Terminalia_catappa": [
+      "Terminalia catappa"
+    ],
+    "Araucaria_columnaris": [
+      "Araucaria columnaris"
+    ],
+    "Dypsis_lutescens": [
+      "Dypsis lutescens",
+      "Chrysalidocarpus lutescens"
+    ],
+    "Strelitzia_reginae": [
+      "Strelitzia reginae"
+    ],
+    "Drynaria_roosii": [
+      "Drynaria roosii",
+      "Drynaria fortunei"
+    ],
+    "Acalypha_wilkesiana": [
+      "Acalypha wilkesiana"
+    ]
+  }
+}

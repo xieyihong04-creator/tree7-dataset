@@ -1,0 +1,12 @@
+# 影像與可再生的中間產物一律不入库
+images/
+candidates/
+contact/
+quarantine/
+*.zip
+*.log
+taxa.json
+manifest.jsonl
+rejected.jsonl
+manifest_*.csv
+__pycache__/
