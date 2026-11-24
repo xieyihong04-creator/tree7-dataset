@@ -1,4 +1,0 @@
-gradio>=5.0,<6
-onnxruntime>=1.18
-numpy>=1.26
-pillow>=10.0

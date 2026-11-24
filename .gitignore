@@ -6,7 +6,7 @@ quarantine/
 data/
 runs/
 demo/*.onnx
-space/*.onnx
+demo/vendor/
 *.zip
 *.log
 taxa.json

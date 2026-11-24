@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tree7 · 樹種辨識</title>
+  <meta name="description" content="以 ResNet18 辨識 7 種常見樹種，瀏覽器內即時推論並顯示 CAM 熱區。">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/ort/ort.wasm.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="brand">
+        <svg class="leaf" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 4C11 4 5 8.5 5 15c0 2.2.8 4 2.2 5L4 23l1.4 1 3.1-3.1c1 .5 2.2.8 3.5.8 6.5 0 11-6 11-15V4h-3zm-2.1 2.1c-.5 6.7-4.2 11-9.3 11.6 1.3-4.6 4.3-8.6 9.3-11.6z"/>
+        </svg>
+        <span>tree7</span>
+      </div>
+      <h1>校園樹種辨識</h1>
+      <p>ResNet18 遷移學習 · 7 類常見樹種 · 瀏覽器內即時推論</p>
+      <div class="badges">
+        <span>test accuracy 92.99%</span>
+        <span>macro F1 92.96%</span>
+        <span>INT8 ONNX · 11 MB</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="layout">
+      <div class="card upload-card">
+        <div class="card-head">
+          <h2>上傳照片</h2>
+          <p>葉片、樹冠或全株皆可，建議主體清楚、光線充足。</p>
+        </div>
+
+        <label id="dropzone" class="dropzone" for="file-input">
+          <input id="file-input" type="file" accept="image/*" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V15"/>
+          </svg>
+          <strong>拖入圖片，或點這裡選擇</strong>
+          <span>也可以直接貼上剪貼簿的圖片</span>
+        </label>
+
+        <div class="actions">
+          <button id="run-button" class="primary" type="button" disabled>開始辨識</button>
+          <span id="hint" class="hint">模型載入中…</span>
+        </div>
+
+        <div class="samples">
+          <div class="samples-head">
+            <h3>test set 範例</h3>
+            <span>點選即可辨識</span>
+          </div>
+          <div id="sample-list" class="sample-list"></div>
+        </div>
+      </div>
+
+      <div class="card result-card">
+        <div class="card-head">
+          <h2>辨識結果</h2>
+          <p id="status-line">正在載入量化模型與推論引擎…</p>
+        </div>
+
+        <div id="progress-wrap" class="progress-wrap">
+          <div class="progress"><div id="progress-bar"></div></div>
+          <span id="progress-text">0%</span>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="empty-ring"></div>
+          <p>還沒選擇圖片</p>
+          <span>上傳一張照片，或點左側範例開始。</span>
+        </div>
+
+        <div id="result" class="result" hidden aria-live="polite">
+          <div class="prediction">
+            <div>
+              <span class="pred-label">最可能的樹種</span>
+              <h3 id="pred-zh">—</h3>
+              <p id="pred-latin">—</p>
+            </div>
+            <div id="pred-confidence" class="confidence">—</div>
+          </div>
+
+          <div id="bars" class="bars"></div>
+
+          <div class="views">
+            <figure>
+              <canvas id="crop-canvas" width="224" height="224"></canvas>
+              <figcaption>模型輸入（中心裁切 224×224）</figcaption>
+            </figure>
+            <figure>
+              <canvas id="cam-canvas" width="224" height="224"></canvas>
+              <figcaption>CAM 熱區（紅＝最關注的位置）</figcaption>
+            </figure>
+          </div>
+
+          <p id="note" class="note"></p>
+        </div>
+
+        <div id="error-box" class="error-box" hidden></div>
+      </div>
+    </section>
+
+    <section class="card info">
+      <div class="info-grid">
+        <div>
+          <h2>模型與資料</h2>
+          <ul class="facts">
+            <li><strong>架構</strong>ResNet18，ImageNet 預訓練；先凍結骨幹 3 epochs，再全模型微調 15 epochs</li>
+            <li><strong>資料</strong>Xieih/tree7，2,143 張、7 類，切分 1,714 / 215 / 214</li>
+            <li><strong>測試集</strong>accuracy 92.99%、macro F1 92.96%</li>
+            <li><strong>部署</strong>INT8 靜態量化 ONNX（10.8 MiB），ONNX Runtime Web 單執行緒 CPU 推論</li>
+            <li><strong>熱區</strong>layer4 的 14×14 特徵圖 × 分類頭權重，上採樣後以 jet colormap 疊圖</li>
+          </ul>
+        </div>
+        <div>
+          <h2>七個類別</h2>
+          <table class="classes">
+          <thead><tr><th>#</th><th>中文名</th><th>學名</th></tr></thead>
+          <tbody id="class-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="disclaimer">
+        所有推論都在你的瀏覽器完成，圖片不會上傳到伺服器。
+        此模型為教學展示，預測結果不能取代專業植物鑑定。
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <span>tree7 · ResNet18 + INT8 ONNX</span>
+    <span>dataset: Xieih/tree7 · CC BY-NC 4.0</span>
+  </footer>
+</body>
+</html>
