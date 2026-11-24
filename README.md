@@ -23,12 +23,12 @@
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("Xieih/tree7", token="<HF token>")   # train 1714 / valid 215 / test 214
+ds = load_dataset("Xieih/tree7")   # train 1714 / valid 215 / test 214
 ds["train"][0]["image"]                                 # PIL.Image，存取時才解碼
 ds["train"].features["label"].names                    # 0..6 對應下方類別表
 ```
 
-倉庫目前是 **private**，要帶 token（或先 `huggingface-cli login`）。`label` 是 `ClassLabel`、
+兩邊倉庫都是 **public**，不需要 token。`label` 是 `ClassLabel`、
 `image` 是 `Image()` 型別，兩者都由 parquet 內的 Hugging Face feature 簽名決定，不需要載入腳本。
 切分為分層 80/10/10（seed `20261124`），每個 split 七類皆均衡；`splits.json` 記錄於 HF 倉庫。
 
