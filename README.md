@@ -48,7 +48,7 @@ classes.json          # 0–6 類別順序與中英學名
 species.json          # 物種設定、學名異名對照
 ```
 
-`data/parquet/`、`runs/`、`demo/*.onnx`、`demo/vendor/` 都可由腳本重新產生，屬於大型產物，不建議納入版本控制。
+`runs/`、`demo/model.onnx`（int8）、`demo/vendor/` 都可由腳本重新產生，不納入版本控制；`data/parquet/` 的部分 shard 與 `demo/model_fp32.onnx` 則保留在倉庫內，缺少的 shard 由 `train.py` 自動下載。
 
 ## 快速開始
 
@@ -111,7 +111,7 @@ python3 -m http.server 8000 --directory demo
 
 ## 資料集
 
-影像放在 Hugging Face：[`datasets/Xieih/tree7`](https://huggingface.co/datasets/Xieih/tree7) — 2,143 張打包成 parquet（影像嵌在欄位內，附 train/valid/test 切分），不用先抓 500 MB 就能串流訓練。本倉庫只放程式、manifest 與文件：GitHub 單檔 100 MB、倉庫建議 <1 GB，而 CC BY-NC 影像公開散布需連署名一併處理。照下面的指令也能在本機重新抓出一份相同結構的資料集；`manifest.csv` 收錄全部 2,143 張的來源連結與授權，可逐張回溯。
+影像放在 Hugging Face：[`datasets/Xieih/tree7`](https://huggingface.co/datasets/Xieih/tree7) — 2,143 張打包成 parquet（影像嵌在欄位內，附 train/valid/test 切分），不用先抓 500 MB 就能串流訓練。本倉庫以程式、manifest 與文件為主，另保留了部分 parquet 切分與 fp32 ONNX（約 136 MB），缺少的 shard 由 `train.py` 自動補抓；CC BY-NC 影像公開散布需連署名一併處理。照下面的指令也能在本機重新抓出一份相同結構的資料集；`manifest.csv` 收錄全部 2,143 張的來源連結與授權，可逐張回溯。
 
 | class | 資料夾 | 中文 | 學名 | 張數 |
 |---|---|---|---|---|
