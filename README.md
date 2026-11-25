@@ -55,6 +55,17 @@
 - 內建每類一張 test 範例，可直接點選試玩
 - ONNX Runtime Web（wasm）搭配 `numThreads=1`，不需要 COOP/COEP 標頭，任何靜態主機都能跑
 
+```mermaid
+flowchart LR
+  A["上傳照片<br/>（不離開瀏覽器）"] --> B["Resize 255<br/>CenterCrop 224"]
+  B --> C["ImageNet 正規化<br/>1×3×224×224"]
+  C --> D["ONNX Runtime Web<br/>ResNet18 INT8"]
+  D --> E["logits → Top-3 機率"]
+  D --> F["layer4 特徵<br/>1×512×7×7"]
+  F --> G["fc_weight × features<br/>ReLU → jet"]
+  G --> H["CAM 熱區疊圖"]
+```
+
 部署在 Hugging Face **Static Space**：免費帳號無法建立 Gradio／Docker Space（需 PRO），因此改用純靜態托管；把 `demo/` 連同 `model.onnx` 與 `vendor/ort/` 一起上傳即可。
 
 ## 專案結構
