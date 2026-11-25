@@ -1,0 +1,8 @@
+class_index,class_name,class_zh,precision,recall,f1,support
+0,Ficus_microcarpa,榕樹,0.8387,0.8387,0.8387,31
+1,Terminalia_catappa,大葉欖仁,0.9615,0.8333,0.8929,30
+2,Araucaria_columnaris,柱狀南洋杉,1.0,0.9355,0.9667,31
+3,Dypsis_lutescens,散尾葵,0.9091,0.9677,0.9375,31
+4,Strelitzia_reginae,鶴望蘭,0.9677,1.0,0.9836,30
+5,Drynaria_roosii,槲蕨,0.9375,0.9677,0.9524,31
+6,Acalypha_wilkesiana,紅桑,0.9062,0.9667,0.9355,30

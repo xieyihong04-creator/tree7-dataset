@@ -1,12 +1,11 @@
-# 影像與可再生的中間產物一律不入库
+# 影像與可再生的中間產物一律不入庫
 images/
 candidates/
 contact/
 quarantine/
 data/
 runs/
-demo/*.onnx
-demo/vendor/
+demo/model_fp32.onnx
 *.zip
 *.log
 taxa.json

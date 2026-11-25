@@ -18,6 +18,32 @@
 - 量化前後幾乎無落差：torch 與 ONNX fp32 的最大 logit 差為 `1.3e-06`，INT8 與 fp32 的 accuracy 同為 92.99%。
 - 完整訓練曲線、混淆矩陣、per-class 指標、預測明細會寫到 `runs/`（`curves_*.png`、`confusion_*.png`、`per_class_*.csv`、`predictions_*.csv`、`metrics_test_*.json`）。
 
+## 評估結果
+
+以部署版 INT8 ONNX（`demo/model.onnx`）在官方 test split 上重算，前處理為 `Resize(255) + CenterCrop(224)`，結果與訓練報告一致：accuracy 92.99%、macro F1 92.96%，214 張中 15 張誤判。完整輸出在 [`results/`](results/)：
+
+- [metrics_test_onnx.json](results/metrics_test_onnx.json) — fp32／INT8 ONNX 的 accuracy、macro F1、混淆矩陣
+- [per_class_resnet18_int8.csv](results/per_class_resnet18_int8.csv)、[predictions_resnet18_int8.csv](results/predictions_resnet18_int8.csv)
+- [confusion_resnet18_int8.png](results/confusion_resnet18_int8.png)
+- [gradcam_errors_resnet18_int8.png](results/gradcam_errors_resnet18_int8.png)、[gradcam_samples_resnet18_int8.png](results/gradcam_samples_resnet18_int8.png)
+
+| 類別 | precision | recall | F1 | test 張數 |
+|---|---|---|---|---|
+| 榕樹 | 0.839 | 0.839 | 0.839 | 31 |
+| 大葉欖仁 | 0.962 | 0.833 | 0.893 | 30 |
+| 柱狀南洋杉 | 1.000 | 0.935 | 0.967 | 31 |
+| 散尾葵 | 0.909 | 0.968 | 0.938 | 31 |
+| 鶴望蘭 | 0.968 | 1.000 | 0.984 | 30 |
+| 槲蕨 | 0.938 | 0.968 | 0.952 | 31 |
+| 紅桑 | 0.906 | 0.967 | 0.935 | 30 |
+| **macro avg** | 0.9315 | 0.9299 | **0.9296** | 214 |
+
+![ResNet18 INT8 混淆矩陣](results/confusion_resnet18_int8.png)
+
+主要誤判集中在榕樹與大葉欖仁：大葉欖仁有 5 張被判成榕樹（recall 0.833 最低），榕樹則有 1 張被判成欖仁；榕樹另有 2 張被分到散尾葵。鶴望蘭 30 張全數正確。下方 CAM 誤判圖可對照模型實際關注的位置。
+
+![ResNet18 INT8 誤判案例與 CAM](results/gradcam_errors_resnet18_int8.png)
+
 ## 線上 Demo
 
 [https://xieih-tree7-species-classifier.static.hf.space](https://xieih-tree7-species-classifier.static.hf.space)
@@ -38,8 +64,11 @@ train.py              # 下載/解包 HF 資料集、訓練基線 CNN 與 ResNet
 gradcam.py            # 兩模型 Grad-CAM 對照、錯誤案例與單張樣本輸出
 export_onnx.py        # 匯出 fp32 ONNX、INT8 靜態量化、驗證、產生 demo 資產
 demo/                 # 純前端 Demo（HTML/CSS/JS + ONNX Runtime Web）
+  model.onnx          # INT8 權重（10.8 MiB，已內附）
+  vendor/ort/         # ONNX Runtime Web 的 wasm 執行檔（已內附）
   config.json         # 類別、正規化參數、分類頭權重、驗證指標、範例圖
   examples/           # 每類一張高信心的 test 範例
+results/              # 部署版 INT8 模型在 test split 的混淆矩陣、CAM 與 CSV
 collect.py            # 建立 iNaturalist / Wikimedia Commons 候選索引
 build.py              # 下載、縮邊、dHash 去重，寫入 images/<Label>/*.jpg
 repair_manifest.py    # 以磁碟為準重建 manifest 並稽核
@@ -48,7 +77,7 @@ classes.json          # 0–6 類別順序與中英學名
 species.json          # 物種設定、學名異名對照
 ```
 
-`runs/`、`demo/model.onnx`（int8）、`demo/vendor/` 都可由腳本重新產生，不納入版本控制；`data/parquet/` 的部分 shard 與 `demo/model_fp32.onnx` 則保留在倉庫內，缺少的 shard 由 `train.py` 自動下載。
+`runs/` 與 `demo/model_fp32.onnx` 由腳本產生，不納入版本控制；`data/parquet/` 由 `train.py` 首次執行時自動下載；`demo/model.onnx`（int8）與 `demo/vendor/ort/` 已內附，clone 後可直接跑 Demo。
 
 ## 快速開始
 
@@ -69,7 +98,7 @@ python3 train.py --models resnet18 --transfer-epochs 15 --freeze-epochs 3
 
 遷移學習分兩段：前 3 個 epoch 凍結 backbone、只訓練分類頭（lr `1e-3`），之後解凍、backbone lr `1e-4`、分類頭 lr `1e-3`，共 15 個 epoch。基線 CNN 從零訓練約 30 個 epoch。
 
-資料增強：`RandomResizedCrop(0.65–1.0, ratio 0.8–1.25)`、水平翻轉、旋轉 ±10°、ColorJitter（0.2/0.2/0.2/0.05）、ImageNet 正規化；驗證與測試用 resize 256 + center crop 224。
+資料增強：`RandomResizedCrop(0.65–1.0, ratio 0.8–1.25)`、水平翻轉、旋轉 ±10°、ColorJitter（0.2/0.2/0.2/0.05）、ImageNet 正規化；驗證與測試用 resize 255 + center crop 224。
 
 ### Grad-CAM
 
@@ -102,16 +131,14 @@ python3 export_onnx.py --ckpt runs/models/resnet18_best.pt --data-root data/tree
 ### 本機跑 Demo
 
 ```bash
-python3 export_onnx.py --ckpt runs/models/resnet18_best.pt
-# 另外把 ONNX Runtime Web 的 ort-wasm-simd-threaded.wasm / .mjs 放到 demo/vendor/ort/
 python3 -m http.server 8000 --directory demo
 ```
 
-開啟 `http://localhost:8000`。`model.onnx` 需由上面的匯出步驟產生（或直接使用線上 Demo）。
+開啟 `http://localhost:8000`。`demo/model.onnx` 與 ORT wasm 已內附，不需額外下載；要重新產生模型與資產時再跑 `python3 export_onnx.py --ckpt runs/models/resnet18_best.pt`。
 
 ## 資料集
 
-影像放在 Hugging Face：[`datasets/Xieih/tree7`](https://huggingface.co/datasets/Xieih/tree7) — 2,143 張打包成 parquet（影像嵌在欄位內，附 train/valid/test 切分），不用先抓 500 MB 就能串流訓練。本倉庫以程式、manifest 與文件為主，另保留了部分 parquet 切分與 fp32 ONNX（約 136 MB），缺少的 shard 由 `train.py` 自動補抓；CC BY-NC 影像公開散布需連署名一併處理。照下面的指令也能在本機重新抓出一份相同結構的資料集；`manifest.csv` 收錄全部 2,143 張的來源連結與授權，可逐張回溯。
+影像放在 Hugging Face：[`datasets/Xieih/tree7`](https://huggingface.co/datasets/Xieih/tree7) — 2,143 張打包成 parquet（影像嵌在欄位內，附 train/valid/test 切分），不用先抓 500 MB 就能串流訓練。本倉庫以程式、manifest、文件與可直接執行的 Demo 為主；parquet 由 `train.py` 首次執行時自動下載，CC BY-NC 影像公開散布需連署名一併處理。照下面的指令也能在本機重新抓出一份相同結構的資料集；`manifest.csv` 收錄全部 2,143 張的來源連結與授權，可逐張回溯。
 
 | class | 資料夾 | 中文 | 學名 | 張數 |
 |---|---|---|---|---|
@@ -150,7 +177,7 @@ python3 repair_manifest.py            # 以磁盤為準重建清單並稽核
 
 ### 資料來源與篩選條件
 
-- **iNaturalist**（2,016 張，94.3%）：只取 `quality_grade=research`，即至少兩位專家同意鑑定，標籤可靠度高。抓取順序為「收藏數高→最新」，先取得較完整的株型照。原圖尺寸用 API 回傳的 `original_dimensions` 預篩（長邊 <900 px 排除），不會浪費頻寬下載縮圖。
+- **iNaturalist**（2,016 張，94.1%）：只取 `quality_grade=research`，即至少兩位專家同意鑑定，標籤可靠度高。抓取順序為「收藏數高→最新」，先取得較完整的株型照。原圖尺寸用 API 回傳的 `original_dimensions` 預篩（長邊 <900 px 排除），不會浪費頻寬下載縮圖。
 - **Wikimedia Commons**（127 張，5.9%）：依物種分類頁抓取，標題黑名單排除地圖、插圖、標本掃描、書頁（BHL／CHS）、海報春聯等；另有「標題屬名 ≠ 目標屬名即排除」的檢查（含學名異名對照，見 `species.json` 的 `syn_genera`），用來攔住混入別種分類頁的檔案。
 - **GBIF 未納入**：其 media 多為標本掃描與文獻縮圖，對活體植株辨識價值低。
 
