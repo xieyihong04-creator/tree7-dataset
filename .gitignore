@@ -1,4 +1,5 @@
 # 影像與可再生的中間產物一律不入庫
+.cache/
 images/
 candidates/
 contact/
