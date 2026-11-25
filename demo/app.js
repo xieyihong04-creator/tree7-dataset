@@ -3,6 +3,8 @@
 const MODEL_URL = "model.onnx";
 const CONFIG_URL = "config.json";
 const IMG_SIZE = 224;
+const LOW_CONFIDENCE = 0.8;
+const CONFUSABLE_CLASSES = new Set(["Ficus_microcarpa", "Terminalia_catappa"]);
 
 const state = {
   config: null,
@@ -369,10 +371,17 @@ function renderPrediction(probs, classIndex) {
   });
 
   const top = probs[classIndex];
-  if (top < 0.5) {
+  const second = order.length > 1 ? order[1] : null;
+  const pairWarning =
+    second !== null &&
+    CONFUSABLE_CLASSES.has(classes[classIndex]) &&
+    CONFUSABLE_CLASSES.has(classes[second]);
+
+  if (top < LOW_CONFIDENCE) {
     el.note.className = "note warn";
     el.note.textContent =
-      "信心偏低：影像可能不是這 7 種樹，或葉片與樹冠特徵不足。建議換一張主體更清楚的照片。";
+      `信心偏低（${(top * 100).toFixed(1)}%）：可能是整株遠景、光線或角度造成特徵不足，先不要把它當成確定答案。建議補拍葉片正反面、果實或樹皮特寫。` +
+      (pairWarning ? " 榕樹與大葉欖仁在整株照上特別容易互判。" : "");
   } else {
     el.note.className = "note";
     el.note.textContent =
