@@ -1,0 +1,63 @@
+{
+ "classes": [
+  "Ficus_microcarpa",
+  "Terminalia_catappa",
+  "Araucaria_columnaris",
+  "Dypsis_lutescens",
+  "Strelitzia_reginae",
+  "Drynaria_roosii",
+  "Acalypha_wilkesiana"
+ ],
+ "valid_selected_threshold_center": 0.55,
+ "valid_selected_threshold_tta": 0.5,
+ "overall": {
+  "valid_center": {
+   "accuracy": 0.9488,
+   "macro_f1": 0.9488,
+   "n": 215
+  },
+  "test_center": {
+   "accuracy": 0.9299,
+   "macro_f1": 0.9296,
+   "n": 214
+  },
+  "valid_tta": {
+   "accuracy": 0.9581,
+   "macro_f1": 0.9579,
+   "n": 215
+  },
+  "test_tta": {
+   "accuracy": 0.9439,
+   "macro_f1": 0.9439,
+   "n": 214
+  }
+ },
+ "mutual_confusion_ficus_terminalia": {
+  "center": {
+   "n": 6,
+   "terminalia_to_ficus": 5,
+   "ficus_to_terminalia": 1
+  },
+  "tta": {
+   "n": 5,
+   "terminalia_to_ficus": 4,
+   "ficus_to_terminalia": 1
+  }
+ },
+ "crop_warning": {
+  "crop_disagreement_rate": 0.1682,
+  "errors_flagged_by_crop_disagreement": 7,
+  "errors_total": 12,
+  "correct_flagged_by_crop_disagreement": 29,
+  "correct_total": 202,
+  "selected_threshold": 0.5,
+  "low_conf_errors_flagged": 8,
+  "low_conf_correct_flagged": 12,
+  "test_coverage_at_selected": 0.9065,
+  "test_selective_accuracy_at_selected": 0.9794
+ },
+ "n_center_errors": 15,
+ "n_tta_errors": 12,
+ "tta_fixed_errors": 4,
+ "tta_new_errors": 1
+}
