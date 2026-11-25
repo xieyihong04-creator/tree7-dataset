@@ -10,6 +10,7 @@ const state = {
   bitmap: null,
   busy: false,
   ready: false,
+  loading: null,
 };
 
 const el = {
@@ -116,32 +117,58 @@ function renderSamples() {
 }
 
 async function loadModel() {
+  el.progressWrap.style.display = "";
   setStatus("正在下載量化模型（約 11 MB）…");
   try {
-    const response = await fetch(MODEL_URL);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const total = Number(response.headers.get("content-length")) || 0;
+    const modelUrl = new URL(MODEL_URL, document.baseURI).href;
+    let cache = null;
+    let cached = null;
+    if ("caches" in window) {
+      try {
+        cache = await caches.open("tree7-model-v1");
+        cached = await cache.match(modelUrl);
+      } catch (error) {
+        console.warn("模型快取讀取失敗", error);
+      }
+    }
+
     let buffer;
-    if (!response.body) {
-      buffer = await response.arrayBuffer();
+    if (cached) {
+      setStatus("使用瀏覽器快取的模型…");
+      buffer = await cached.arrayBuffer();
       setProgress(1);
     } else {
-      const reader = response.body.getReader();
-      const chunks = [];
-      let received = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        received += value.length;
-        if (total) {
-          setProgress(received / total);
-        } else {
-          setProgress(null, (received / 1048576).toFixed(1) + " MB");
+      const response = await fetch(MODEL_URL);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const total = Number(response.headers.get("content-length")) || 0;
+      if (!response.body) {
+        buffer = await response.arrayBuffer();
+        setProgress(1);
+      } else {
+        const reader = response.body.getReader();
+        const chunks = [];
+        let received = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          if (total) {
+            setProgress(received / total);
+          } else {
+            setProgress(null, (received / 1048576).toFixed(1) + " MB");
+          }
+        }
+        const blob = new Blob(chunks, { type: "application/octet-stream" });
+        buffer = await blob.arrayBuffer();
+      }
+      if (cache) {
+        try {
+          await cache.put(modelUrl, new Response(buffer));
+        } catch (error) {
+          console.warn("模型快取寫入失敗", error);
         }
       }
-      const blob = new Blob(chunks, { type: "application/octet-stream" });
-      buffer = await blob.arrayBuffer();
     }
 
     setStatus("正在初始化推論引擎…");
@@ -167,6 +194,14 @@ async function loadModel() {
     showError("無法載入模型：" + error.message + "。請重新整理頁面再試。");
     console.error(error);
   }
+}
+
+async function ensureModel() {
+  if (state.ready) return true;
+  if (!state.loading) state.loading = loadModel();
+  await state.loading;
+  if (!state.ready) state.loading = null;
+  return state.ready;
 }
 
 function drawPreview(source) {
@@ -347,14 +382,19 @@ function renderPrediction(probs, classIndex) {
 
 async function run() {
   if (!state.bitmap || state.busy) return;
-  if (!state.ready) {
-    el.hint.textContent = "模型還沒載入完成";
-    return;
-  }
   state.busy = true;
   el.runButton.disabled = true;
-  el.hint.textContent = "推論中…";
+  el.hint.textContent = state.ready ? "推論中…" : "準備模型中…";
   clearError();
+
+  const ready = await ensureModel();
+  if (!ready) {
+    state.busy = false;
+    el.runButton.disabled = !state.bitmap;
+    return;
+  }
+
+  el.hint.textContent = "推論中…";
   await new Promise((resolve) => setTimeout(resolve, 20));
 
   try {
@@ -404,7 +444,7 @@ async function useFile(file, label) {
     drawPreview(file);
     el.empty.hidden = false;
     el.result.hidden = true;
-    el.runButton.disabled = !state.ready;
+    el.runButton.disabled = false;
     setStatus(label ? `已載入範例：${label}` : "圖片已載入，開始辨識中…");
     await run();
   } catch (error) {
@@ -466,7 +506,9 @@ async function init() {
     showError("無法載入 config.json：" + error.message);
     return;
   }
-  await loadModel();
+  hideProgress();
+  el.hint.textContent = "模型會在第一次辨識時載入";
+  setStatus("選擇照片或範例後才需下載模型（約 11 MB），之後會使用瀏覽器快取。");
 }
 
 init();

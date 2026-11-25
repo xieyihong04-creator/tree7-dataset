@@ -53,6 +53,7 @@
 - Top-3 類別機率與中文名稱
 - CAM 熱區（`layer4` 的 7×7 特徵圖 × 分類頭權重，jet 色階疊回原圖）
 - 內建每類一張 test 範例，可直接點選試玩
+- 開頁只載入 UI；**第一次推論時**才下載 10.8 MiB 模型與 ORT wasm，之後模型存入瀏覽器 Cache Storage，重載不再下載
 - ONNX Runtime Web（wasm）搭配 `numThreads=1`，不需要 COOP/COEP 標頭，任何靜態主機都能跑
 
 ```mermaid
