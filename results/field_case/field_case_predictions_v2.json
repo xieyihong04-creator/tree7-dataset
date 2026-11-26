@@ -1,0 +1,144 @@
+{
+ "IMG_20261124_145430": {
+  "file": "IMG_20261124_145430.jpg",
+  "center": {
+   "Ficus_microcarpa": 0.5335,
+   "Terminalia_catappa": 0.2931,
+   "Araucaria_columnaris": 0.0486,
+   "Dypsis_lutescens": 0.0435,
+   "Strelitzia_reginae": 0.0084,
+   "Drynaria_roosii": 0.031,
+   "Acalypha_wilkesiana": 0.0419
+  },
+  "tta": {
+   "Ficus_microcarpa": 0.5325,
+   "Terminalia_catappa": 0.2268,
+   "Araucaria_columnaris": 0.0329,
+   "Dypsis_lutescens": 0.1003,
+   "Strelitzia_reginae": 0.022,
+   "Drynaria_roosii": 0.0257,
+   "Acalypha_wilkesiana": 0.0599
+  },
+  "center_top": {
+   "class": "Ficus_microcarpa",
+   "class_zh": "榕樹",
+   "p": 0.5335
+  },
+  "tta_top": {
+   "class": "Ficus_microcarpa",
+   "class_zh": "榕樹",
+   "p": 0.5325
+  },
+  "ficus": 0.5325,
+  "terminalia": 0.2268,
+  "per_crop": [
+   {
+    "crop": 0,
+    "top": "Ficus_microcarpa",
+    "p": 0.5335,
+    "ficus": 0.5335,
+    "terminalia": 0.2931
+   },
+   {
+    "crop": 1,
+    "top": "Terminalia_catappa",
+    "p": 0.506,
+    "ficus": 0.2485,
+    "terminalia": 0.506
+   },
+   {
+    "crop": 2,
+    "top": "Terminalia_catappa",
+    "p": 0.339,
+    "ficus": 0.3146,
+    "terminalia": 0.339
+   },
+   {
+    "crop": 3,
+    "top": "Ficus_microcarpa",
+    "p": 0.7486,
+    "ficus": 0.7486,
+    "terminalia": 0.0793
+   },
+   {
+    "crop": 4,
+    "top": "Ficus_microcarpa",
+    "p": 0.6644,
+    "ficus": 0.6644,
+    "terminalia": 0.073
+   }
+  ],
+  "composite": "IMG_20261124_145430_v2_per_crop_cam.jpg"
+ },
+ "IMG_20261124_145433": {
+  "file": "IMG_20261124_145433.jpg",
+  "center": {
+   "Ficus_microcarpa": 0.0691,
+   "Terminalia_catappa": 0.8167,
+   "Araucaria_columnaris": 0.0143,
+   "Dypsis_lutescens": 0.0128,
+   "Strelitzia_reginae": 0.0099,
+   "Drynaria_roosii": 0.0458,
+   "Acalypha_wilkesiana": 0.0315
+  },
+  "tta": {
+   "Ficus_microcarpa": 0.0769,
+   "Terminalia_catappa": 0.8066,
+   "Araucaria_columnaris": 0.0181,
+   "Dypsis_lutescens": 0.0212,
+   "Strelitzia_reginae": 0.0109,
+   "Drynaria_roosii": 0.0358,
+   "Acalypha_wilkesiana": 0.0304
+  },
+  "center_top": {
+   "class": "Terminalia_catappa",
+   "class_zh": "大葉欖仁",
+   "p": 0.8167
+  },
+  "tta_top": {
+   "class": "Terminalia_catappa",
+   "class_zh": "大葉欖仁",
+   "p": 0.8066
+  },
+  "ficus": 0.0769,
+  "terminalia": 0.8066,
+  "per_crop": [
+   {
+    "crop": 0,
+    "top": "Terminalia_catappa",
+    "p": 0.8167,
+    "ficus": 0.0691,
+    "terminalia": 0.8167
+   },
+   {
+    "crop": 1,
+    "top": "Terminalia_catappa",
+    "p": 0.8304,
+    "ficus": 0.0561,
+    "terminalia": 0.8304
+   },
+   {
+    "crop": 2,
+    "top": "Terminalia_catappa",
+    "p": 0.8664,
+    "ficus": 0.0504,
+    "terminalia": 0.8664
+   },
+   {
+    "crop": 3,
+    "top": "Terminalia_catappa",
+    "p": 0.8013,
+    "ficus": 0.0678,
+    "terminalia": 0.8013
+   },
+   {
+    "crop": 4,
+    "top": "Terminalia_catappa",
+    "p": 0.6511,
+    "ficus": 0.1824,
+    "terminalia": 0.6511
+   }
+  ],
+  "composite": "IMG_20261124_145433_v2_per_crop_cam.jpg"
+ }
+}
