@@ -1,5 +1,7 @@
 # 評估結果
 
+## 隨機 split（214 張，seed 20261124）
+
 以部署版 INT8 模型 [`demo/model.onnx`](../demo/model.onnx) 在 `Xieih/tree7` 的 test split（214 張）重新推論，前處理為 `Resize(255) → CenterCrop(224) → ToTensor → ImageNet Normalize`。
 
 - accuracy **92.99%**、macro F1 **92.96%**，214 張中 15 張誤判
@@ -24,3 +26,18 @@
 | `gradcam_samples_resnet18_int8.png` | 每類高信心正確樣本與 CAM |
 
 CAM 依 Demo 相同算法：`layer4` 的 7×7 特徵圖乘上分類頭權重、ReLU、正規化後以 jet 色階疊回影像。Demo 的 CAM 只反映**中心裁切**；`field_case/` 則對五個裁切分別輸出 CAM。
+
+## observation split（217 張，只評一次）
+
+依 `manifest.csv` 的 `page_url` 分組（1,729 組、0 跨組洩漏），重訓後的新 test 只評估一次：
+
+| 模型 | accuracy | macro F1 | 榕樹↔欖仁互判 |
+|---|---|---|---|
+| 基線 CNN | 77.42% | 77.18% | 5 |
+| ResNet18 | 92.63% | 92.66% | 3 |
+| ResNet18 + 退化增強 | 92.17% | 92.21% | 4 |
+
+- `observation_split/results.json` — 三個模型的完整 metrics、混淆矩陣、訓練設定
+- `observation_split/metrics_test_*.json`、`per_class_*.csv`、`predictions_*.csv`
+- `observation_split/confusion_*.png`、`curves_*.png`
+- 退化增強在乾淨 test 上沒有超越原 ResNet18；field-set 分層評估仍待補。

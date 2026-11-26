@@ -1,0 +1,627 @@
+{
+  "dataset": {
+    "repo": "Xieih/tree7",
+    "classes": [
+      "Ficus_microcarpa",
+      "Terminalia_catappa",
+      "Araucaria_columnaris",
+      "Dypsis_lutescens",
+      "Strelitzia_reginae",
+      "Drynaria_roosii",
+      "Acalypha_wilkesiana"
+    ],
+    "class_zh": {
+      "Ficus_microcarpa": "榕樹",
+      "Terminalia_catappa": "大葉欖仁",
+      "Araucaria_columnaris": "柱狀南洋杉",
+      "Dypsis_lutescens": "散尾葵",
+      "Strelitzia_reginae": "鶴望蘭",
+      "Drynaria_roosii": "槲蕨",
+      "Acalypha_wilkesiana": "紅桑"
+    },
+    "split_mode": "grouped",
+    "splits": {
+      "train": 1707,
+      "valid": 219,
+      "test": 217
+    },
+    "img_size": 224
+  },
+  "env": {
+    "torch": "2.11.0+cu130",
+    "torchvision": "0.26.0+cu130",
+    "device": "cuda",
+    "gpu": "Tesla T4",
+    "seed": 42
+  },
+  "models": {
+    "baseline": {
+      "params": 1175015,
+      "best_val_f1": 0.7188,
+      "best_epoch": 30,
+      "train_time_sec": 760.2,
+      "config": {
+        "epochs": 30,
+        "freeze_epochs": 0,
+        "batch_size": 32,
+        "img_size": 224,
+        "label_smoothing": 0.1
+      },
+      "test_accuracy": 0.7742,
+      "test_macro_f1": 0.7718,
+      "per_class": {
+        "Ficus_microcarpa": {
+          "precision": 0.6667,
+          "recall": 0.5161,
+          "f1": 0.5818,
+          "support": 31
+        },
+        "Terminalia_catappa": {
+          "precision": 0.7333,
+          "recall": 0.7097,
+          "f1": 0.7213,
+          "support": 31
+        },
+        "Araucaria_columnaris": {
+          "precision": 0.8621,
+          "recall": 0.8065,
+          "f1": 0.8333,
+          "support": 31
+        },
+        "Dypsis_lutescens": {
+          "precision": 0.8125,
+          "recall": 0.8387,
+          "f1": 0.8254,
+          "support": 31
+        },
+        "Strelitzia_reginae": {
+          "precision": 0.8529,
+          "recall": 0.9667,
+          "f1": 0.9062,
+          "support": 30
+        },
+        "Drynaria_roosii": {
+          "precision": 0.6486,
+          "recall": 0.75,
+          "f1": 0.6957,
+          "support": 32
+        },
+        "Acalypha_wilkesiana": {
+          "precision": 0.8387,
+          "recall": 0.8387,
+          "f1": 0.8387,
+          "support": 31
+        }
+      },
+      "confusion_matrix": {
+        "raw": [
+          [
+            16,
+            1,
+            2,
+            1,
+            3,
+            8,
+            0
+          ],
+          [
+            4,
+            22,
+            1,
+            1,
+            0,
+            2,
+            1
+          ],
+          [
+            1,
+            1,
+            25,
+            2,
+            0,
+            2,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            26,
+            2,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            29,
+            0,
+            0
+          ],
+          [
+            0,
+            2,
+            1,
+            2,
+            0,
+            24,
+            3
+          ],
+          [
+            1,
+            4,
+            0,
+            0,
+            0,
+            0,
+            26
+          ]
+        ],
+        "normalized": [
+          [
+            0.5161,
+            0.0323,
+            0.0645,
+            0.0323,
+            0.0968,
+            0.2581,
+            0.0
+          ],
+          [
+            0.129,
+            0.7097,
+            0.0323,
+            0.0323,
+            0.0,
+            0.0645,
+            0.0323
+          ],
+          [
+            0.0323,
+            0.0323,
+            0.8065,
+            0.0645,
+            0.0,
+            0.0645,
+            0.0
+          ],
+          [
+            0.0323,
+            0.0,
+            0.0,
+            0.8387,
+            0.0645,
+            0.0323,
+            0.0323
+          ],
+          [
+            0.0333,
+            0.0,
+            0.0,
+            0.0,
+            0.9667,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0625,
+            0.0312,
+            0.0625,
+            0.0,
+            0.75,
+            0.0938
+          ],
+          [
+            0.0323,
+            0.129,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.8387
+          ]
+        ]
+      }
+    },
+    "resnet18": {
+      "params": 11180103,
+      "best_val_f1": 0.9044,
+      "best_epoch": 13,
+      "train_time_sec": 369.7,
+      "config": {
+        "epochs": 15,
+        "freeze_epochs": 3,
+        "batch_size": 32,
+        "img_size": 224,
+        "label_smoothing": 0.1
+      },
+      "test_accuracy": 0.9263,
+      "test_macro_f1": 0.9266,
+      "per_class": {
+        "Ficus_microcarpa": {
+          "precision": 0.871,
+          "recall": 0.871,
+          "f1": 0.871,
+          "support": 31
+        },
+        "Terminalia_catappa": {
+          "precision": 0.8485,
+          "recall": 0.9032,
+          "f1": 0.875,
+          "support": 31
+        },
+        "Araucaria_columnaris": {
+          "precision": 1.0,
+          "recall": 0.9032,
+          "f1": 0.9492,
+          "support": 31
+        },
+        "Dypsis_lutescens": {
+          "precision": 0.9062,
+          "recall": 0.9355,
+          "f1": 0.9206,
+          "support": 31
+        },
+        "Strelitzia_reginae": {
+          "precision": 0.9677,
+          "recall": 1.0,
+          "f1": 0.9836,
+          "support": 30
+        },
+        "Drynaria_roosii": {
+          "precision": 0.9394,
+          "recall": 0.9688,
+          "f1": 0.9538,
+          "support": 32
+        },
+        "Acalypha_wilkesiana": {
+          "precision": 0.9655,
+          "recall": 0.9032,
+          "f1": 0.9333,
+          "support": 31
+        }
+      },
+      "confusion_matrix": {
+        "raw": [
+          [
+            27,
+            2,
+            0,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            28,
+            0,
+            0,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            28,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            29,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            30,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            31,
+            0
+          ],
+          [
+            0,
+            2,
+            0,
+            0,
+            0,
+            1,
+            28
+          ]
+        ],
+        "normalized": [
+          [
+            0.871,
+            0.0645,
+            0.0,
+            0.0323,
+            0.0,
+            0.0323,
+            0.0
+          ],
+          [
+            0.0323,
+            0.9032,
+            0.0,
+            0.0,
+            0.0323,
+            0.0,
+            0.0323
+          ],
+          [
+            0.0323,
+            0.0,
+            0.9032,
+            0.0645,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0323,
+            0.0323,
+            0.0,
+            0.9355,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0312,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.9688,
+            0.0
+          ],
+          [
+            0.0,
+            0.0645,
+            0.0,
+            0.0,
+            0.0,
+            0.0323,
+            0.9032
+          ]
+        ]
+      }
+    },
+    "resnet18_degrade": {
+      "params": 11180103,
+      "best_val_f1": 0.9223,
+      "best_epoch": 5,
+      "train_time_sec": 737.2,
+      "init_checkpoint": "resnet18_best.pt",
+      "degrade": {
+        "downscale": [
+          0.35,
+          0.7
+        ],
+        "blur_sigma": [
+          0.5,
+          1.5
+        ],
+        "jpeg_quality": [
+          30,
+          50
+        ]
+      },
+      "config": {
+        "epochs": 6,
+        "freeze_epochs": 0,
+        "batch_size": 32,
+        "img_size": 224,
+        "label_smoothing": 0.1
+      },
+      "test_accuracy": 0.9217,
+      "test_macro_f1": 0.9221,
+      "per_class": {
+        "Ficus_microcarpa": {
+          "precision": 0.8182,
+          "recall": 0.871,
+          "f1": 0.8438,
+          "support": 31
+        },
+        "Terminalia_catappa": {
+          "precision": 0.8966,
+          "recall": 0.8387,
+          "f1": 0.8667,
+          "support": 31
+        },
+        "Araucaria_columnaris": {
+          "precision": 1.0,
+          "recall": 0.9677,
+          "f1": 0.9836,
+          "support": 31
+        },
+        "Dypsis_lutescens": {
+          "precision": 1.0,
+          "recall": 0.9677,
+          "f1": 0.9836,
+          "support": 31
+        },
+        "Strelitzia_reginae": {
+          "precision": 0.9375,
+          "recall": 1.0,
+          "f1": 0.9677,
+          "support": 30
+        },
+        "Drynaria_roosii": {
+          "precision": 0.8824,
+          "recall": 0.9375,
+          "f1": 0.9091,
+          "support": 32
+        },
+        "Acalypha_wilkesiana": {
+          "precision": 0.931,
+          "recall": 0.871,
+          "f1": 0.9,
+          "support": 31
+        }
+      },
+      "confusion_matrix": {
+        "raw": [
+          [
+            27,
+            2,
+            0,
+            0,
+            0,
+            2,
+            0
+          ],
+          [
+            2,
+            26,
+            0,
+            0,
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            0,
+            30,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            30,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            30,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            1,
+            30,
+            0
+          ],
+          [
+            2,
+            1,
+            0,
+            0,
+            0,
+            1,
+            27
+          ]
+        ],
+        "normalized": [
+          [
+            0.871,
+            0.0645,
+            0.0,
+            0.0,
+            0.0,
+            0.0645,
+            0.0
+          ],
+          [
+            0.0645,
+            0.8387,
+            0.0,
+            0.0,
+            0.0,
+            0.0323,
+            0.0645
+          ],
+          [
+            0.0323,
+            0.0,
+            0.9677,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.9677,
+            0.0323,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0312,
+            0.0,
+            0.0,
+            0.0,
+            0.0312,
+            0.9375,
+            0.0
+          ],
+          [
+            0.0645,
+            0.0323,
+            0.0,
+            0.0,
+            0.0,
+            0.0323,
+            0.871
+          ]
+        ]
+      }
+    }
+  }
+}

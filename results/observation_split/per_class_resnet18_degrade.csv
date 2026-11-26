@@ -1,0 +1,8 @@
+class,precision,recall,f1,support
+Ficus_microcarpa,0.8182,0.8710,0.8438,31
+Terminalia_catappa,0.8966,0.8387,0.8667,31
+Araucaria_columnaris,1.0000,0.9677,0.9836,31
+Dypsis_lutescens,1.0000,0.9677,0.9836,31
+Strelitzia_reginae,0.9375,1.0000,0.9677,30
+Drynaria_roosii,0.8824,0.9375,0.9091,32
+Acalypha_wilkesiana,0.9310,0.8710,0.9000,31
