@@ -16,13 +16,15 @@
 
 - 切分：train 1,714 / valid 215 / test 214（分層 80/10/10，seed `20261124`）。
 - 量化前後幾乎無落差：torch 與 ONNX fp32 的最大 logit 差為 `1.3e-06`，INT8 與 fp32 的 accuracy 同為 92.99%。
+- Demo 使用 **5-crop TTA**（中心＋四角裁切平均 logits）：test 92.99% → **94.39%**、macro F1 92.96% → 94.39%；榕樹↔大葉欖仁互判由 6 件降到 5 件（[tta_metrics.json](results/tta_metrics.json)）。
 - 完整訓練曲線、混淆矩陣、per-class 指標、預測明細會寫到 `runs/`（`curves_*.png`、`confusion_*.png`、`per_class_*.csv`、`predictions_*.csv`、`metrics_test_*.json`）。
 
 ## 評估結果
 
-以部署版 INT8 ONNX（`demo/model.onnx`）在官方 test split 上重算，前處理為 `Resize(255) + CenterCrop(224)`，結果與訓練報告一致：accuracy 92.99%、macro F1 92.96%，214 張中 15 張誤判。完整輸出在 [`results/`](results/)：
+以部署版 INT8 ONNX（`demo/model.onnx`）在官方 test split 上重算，前處理為 `Resize(255) + CenterCrop(224)`，結果與訓練報告一致：accuracy 92.99%、macro F1 92.96%，214 張中 15 張誤判。Demo 另外使用 5-crop TTA，把 test accuracy 提升到 94.39%（12 個錯誤），valid 從 94.88% 提升到 95.81%。完整輸出在 [`results/`](results/)：
 
-- [metrics_test_onnx.json](results/metrics_test_onnx.json) — fp32／INT8 ONNX 的 accuracy、macro F1、混淆矩陣
+- [metrics_test_onnx.json](results/metrics_test_onnx.json) — fp32／INT8 ONNX 的單張中心裁切指標
+- [tta_metrics.json](results/tta_metrics.json)、[threshold_sweep.md](results/threshold_sweep.md) — 5-crop TTA 與選擇性預測門檻
 - [per_class_resnet18_int8.csv](results/per_class_resnet18_int8.csv)、[predictions_resnet18_int8.csv](results/predictions_resnet18_int8.csv)
 - [confusion_resnet18_int8.png](results/confusion_resnet18_int8.png)
 - [gradcam_errors_resnet18_int8.png](results/gradcam_errors_resnet18_int8.png)、[gradcam_samples_resnet18_int8.png](results/gradcam_samples_resnet18_int8.png)
@@ -54,6 +56,7 @@
 - CAM 熱區（`layer4` 的 7×7 特徵圖 × 分類頭權重，jet 色階疊回原圖）
 - 內建每類一張 test 範例，可直接點選試玩
 - top-1 低於 0.8 時顯示低信心提示，並建議補拍葉片、果實或樹皮特寫
+- 首次推論使用 5-crop TTA（中心＋四角），約 0.4 秒完成
 - 開頁只載入 UI；**第一次推論時**才下載 10.8 MiB 模型與 ORT wasm，之後模型存入瀏覽器 Cache Storage，重載不再下載
 - ONNX Runtime Web（wasm）搭配 `numThreads=1`，不需要 COOP/COEP 標頭，任何靜態主機都能跑
 
@@ -230,7 +233,7 @@ python3 repair_manifest.py            # 以磁盤為準重建清單並稽核
 ## 已知限制
 
 1. **只有 7 類**：不在類別內（含同屬其他種）的植物，模型仍會給出其中一類的機率，Demo 不具備真正的「未知」拒絕能力；top-1 < 0.8 只是低信心護欄。
-2. **整株遠景不可靠**：test 隨機切分以葉片特寫為主，整株／樹冠照的現場表現明顯較差。榕樹與大葉欖仁會互判——實際案例中，一張整株榕樹被預測為大葉欖仁 73.6%（榕樹僅 14.4%）。中心裁切 224×224 會丟掉葉形、果實與樹皮等關鍵特徵。
+2. **整株遠景不可靠**：test 隨機切分以葉片特寫為主，整株／樹冠照的現場表現明顯較差。榕樹與大葉欖仁會互判——實際案例中，一張整株榕樹被預測為大葉欖仁 73.6%（榕樹僅 14.4%）。中心裁切 224×224 會丟掉葉形、果實與樹皮等關鍵特徵；5-crop TTA 只能小幅改善，無法修正這類分佈外照片。
 3. **取景混雜**：整株、樹冠、葉／果特寫都有，榕樹類約 4 成是葉近拍。做「通用」辨識是好事，做整株專用模型時需再過濾一輪。
 4. **情境偏城市**：多為公園、路樹、校園、庭園，森林原生境與遠景小樹覆蓋率低。
 5. **地理偏斜**：熱帶與南半球觀察量大，台灣本地占比有限。要強化台灣街景，可用 iNaturalist 的 `place_id` 限定台灣再抓一輪。

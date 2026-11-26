@@ -221,28 +221,7 @@ function drawPreview(source) {
   el.dropzone.classList.add("has-image");
 }
 
-function preprocess(bitmap) {
-  const scale = 255 / Math.min(bitmap.width, bitmap.height);
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
-
-  const resized = document.createElement("canvas");
-  resized.width = width;
-  resized.height = height;
-  const rctx = resized.getContext("2d", { willReadFrequently: false });
-  rctx.imageSmoothingEnabled = true;
-  rctx.imageSmoothingQuality = "high";
-  rctx.drawImage(bitmap, 0, 0, width, height);
-
-  const left = Math.floor((width - IMG_SIZE) / 2);
-  const top = Math.floor((height - IMG_SIZE) / 2);
-
-  const crop = el.cropCanvas;
-  const cctx = crop.getContext("2d", { willReadFrequently: true });
-  cctx.clearRect(0, 0, IMG_SIZE, IMG_SIZE);
-  cctx.drawImage(resized, left, top, IMG_SIZE, IMG_SIZE, 0, 0, IMG_SIZE, IMG_SIZE);
-
-  const pixels = cctx.getImageData(0, 0, IMG_SIZE, IMG_SIZE).data;
+function pixelsToTensor(pixels) {
   const tensor = new Float32Array(3 * IMG_SIZE * IMG_SIZE);
   const mean = state.config.mean;
   const std = state.config.std;
@@ -255,7 +234,53 @@ function preprocess(bitmap) {
     tensor[plane + i] = (g - mean[1]) / std[1];
     tensor[2 * plane + i] = (b - mean[2]) / std[2];
   }
-  return { tensor, pixels };
+  return tensor;
+}
+
+function preprocess(bitmap) {
+  const scale = 255 / Math.min(bitmap.width, bitmap.height);
+  const width = Math.max(IMG_SIZE, Math.round(bitmap.width * scale));
+  const height = Math.max(IMG_SIZE, Math.round(bitmap.height * scale));
+
+  const resized = document.createElement("canvas");
+  resized.width = width;
+  resized.height = height;
+  const rctx = resized.getContext("2d", { willReadFrequently: false });
+  rctx.imageSmoothingEnabled = true;
+  rctx.imageSmoothingQuality = "high";
+  rctx.drawImage(bitmap, 0, 0, width, height);
+
+  const maxX = width - IMG_SIZE;
+  const maxY = height - IMG_SIZE;
+  const positions = [
+    [Math.floor(maxX / 2), Math.floor(maxY / 2)],
+    [0, 0],
+    [maxX, 0],
+    [0, maxY],
+    [maxX, maxY],
+  ];
+
+  const tensors = [];
+  let pixels = null;
+  positions.forEach(([left, top], index) => {
+    const crop = document.createElement("canvas");
+    crop.width = IMG_SIZE;
+    crop.height = IMG_SIZE;
+    const cctx = crop.getContext("2d", { willReadFrequently: true });
+    cctx.imageSmoothingEnabled = true;
+    cctx.imageSmoothingQuality = "high";
+    cctx.drawImage(resized, left, top, IMG_SIZE, IMG_SIZE, 0, 0, IMG_SIZE, IMG_SIZE);
+    const data = cctx.getImageData(0, 0, IMG_SIZE, IMG_SIZE).data;
+    if (index === 0) {
+      pixels = data;
+      const display = el.cropCanvas.getContext("2d");
+      display.clearRect(0, 0, IMG_SIZE, IMG_SIZE);
+      display.putImageData(cctx.getImageData(0, 0, IMG_SIZE, IMG_SIZE), 0, 0);
+    }
+    tensors.push(pixelsToTensor(data));
+  });
+
+  return { tensors, pixels };
 }
 
 function softmax(values) {
@@ -409,27 +434,42 @@ async function run() {
   try {
     const prepared = preprocess(state.bitmap);
     const inputName = state.session.inputNames[0];
-    const feeds = {
-      [inputName]: new ort.Tensor("float32", prepared.tensor, [1, 3, IMG_SIZE, IMG_SIZE]),
-    };
     const started = performance.now();
-    const output = await state.session.run(feeds);
+    let logitsSum = null;
+    let features = null;
+    for (let i = 0; i < prepared.tensors.length; i += 1) {
+      const feeds = {
+        [inputName]: new ort.Tensor("float32", prepared.tensors[i], [1, 3, IMG_SIZE, IMG_SIZE]),
+      };
+      const output = await state.session.run(feeds);
+      const logitsTensor = output.logits || output[state.session.outputNames[0]];
+      const featureTensor = output.features || output[state.session.outputNames[1]];
+      if (i === 0) {
+        features = featureTensor.data;
+        logitsSum = new Float64Array(logitsTensor.data.length);
+      }
+      for (let j = 0; j < logitsTensor.data.length; j += 1) {
+        logitsSum[j] += logitsTensor.data[j];
+      }
+    }
     const elapsed = Math.round(performance.now() - started);
+    const logits = new Float32Array(logitsSum.length);
+    for (let i = 0; i < logitsSum.length; i += 1) {
+      logits[i] = logitsSum[i] / prepared.tensors.length;
+    }
 
-    const logitsTensor = output.logits || output[state.session.outputNames[0]];
-    const featureTensor = output.features || output[state.session.outputNames[1]];
-    const probs = softmax(logitsTensor.data);
+    const probs = softmax(logits);
     let best = 0;
     for (let i = 1; i < probs.length; i += 1) {
       if (probs[i] > probs[best]) best = i;
     }
 
     renderPrediction(probs, best);
-    buildCam(featureTensor.data, best, prepared.pixels);
+    buildCam(features, best, prepared.pixels);
 
     el.empty.hidden = true;
     el.result.hidden = false;
-    setStatus(`完成 · ${elapsed} ms · 全部在瀏覽器內執行`);
+    setStatus(`完成 · ${elapsed} ms · 5-crop TTA · 全部在瀏覽器內執行`);
     el.hint.textContent = "模型就緒";
   } catch (error) {
     showError("推論失敗：" + error.message);

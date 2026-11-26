@@ -3,12 +3,16 @@
 以部署版 INT8 模型 [`demo/model.onnx`](../demo/model.onnx) 在 `Xieih/tree7` 的 test split（214 張）重新推論，前處理為 `Resize(255) → CenterCrop(224) → ToTensor → ImageNet Normalize`。
 
 - accuracy **92.99%**、macro F1 **92.96%**，214 張中 15 張誤判
+- 5-crop TTA：accuracy **94.39%**、12 張誤判；valid 94.88% → 95.81%
 - fp32 ONNX 同為 92.99% / 92.95%，與訓練報告一致
-- 模型 SHA-256 與完整數字見 [`metrics_test_onnx.json`](metrics_test_onnx.json)
+- 模型 SHA-256 與完整數字見 [`metrics_test_onnx.json`](metrics_test_onnx.json)；TTA 與門檻掃描見 [`tta_metrics.json`](tta_metrics.json)、[`threshold_sweep.md`](threshold_sweep.md)
 
 | 檔案 | 內容 |
 |---|---|
 | `metrics_test_onnx.json` | fp32／INT8 的 accuracy、macro F1、per-class 指標、混淆矩陣 |
+| `tta_metrics.json` | 5-crop TTA 指標、互判件數、crop 不一致警告 |
+| `threshold_sweep.md` / `.csv` | 選擇性預測門檻掃描（valid 選、test 驗證） |
+| `tta_error_cases.csv` | TTA 後仍錯誤的案例明細 |
 | `per_class_resnet18_int8.csv` | 各類 precision／recall／F1／support |
 | `predictions_resnet18_int8.csv` | 每張 test 影像的預測、信心值與是否正確 |
 | `confusion_resnet18_int8.png` | 混淆矩陣 |
