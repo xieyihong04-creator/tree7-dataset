@@ -4,6 +4,7 @@
 
 - accuracy **92.99%**、macro F1 **92.96%**，214 張中 15 張誤判
 - 5-crop TTA：accuracy **94.39%**、12 張誤判；valid 94.88% → 95.81%
+- 目前部署：TTA + 信心門檻 0.8（無 crop 聯集）；完整權衡見 [`guard_consistency.md`](guard_consistency.md)
 - fp32 ONNX 同為 92.99% / 92.95%，與訓練報告一致
 - 模型 SHA-256 與完整數字見 [`metrics_test_onnx.json`](metrics_test_onnx.json)；TTA 與門檻掃描見 [`tta_metrics.json`](tta_metrics.json)、[`threshold_sweep.md`](threshold_sweep.md)
 
@@ -12,6 +13,9 @@
 | `metrics_test_onnx.json` | fp32／INT8 的 accuracy、macro F1、per-class 指標、混淆矩陣 |
 | `tta_metrics.json` | 5-crop TTA 指標、互判件數、crop 不一致警告 |
 | `threshold_sweep.md` / `.csv` | 選擇性預測門檻掃描（valid 選、test 驗證） |
+| `guard_consistency.md` / `.json` | {center, TTA}×{0.5, 0.8} 的 coverage／selective acc／誤攔率；含部署配置 |
+| `grouped_split_stats.json` | observation-level split 統計（1,729 組、1,707／219／217） |
+| `field_case/` | 兩張現場原圖的 TTA 預測與 per-crop CAM |
 | `tta_error_cases.csv` | TTA 後仍錯誤的案例明細 |
 | `per_class_resnet18_int8.csv` | 各類 precision／recall／F1／support |
 | `predictions_resnet18_int8.csv` | 每張 test 影像的預測、信心值與是否正確 |
@@ -19,4 +23,4 @@
 | `gradcam_errors_resnet18_int8.png` | 15 個誤判案例的 CAM 疊圖 |
 | `gradcam_samples_resnet18_int8.png` | 每類高信心正確樣本與 CAM |
 
-CAM 依 Demo 相同算法：`layer4` 的 7×7 特徵圖乘上分類頭權重、ReLU、正規化後以 jet 色階疊回影像。
+CAM 依 Demo 相同算法：`layer4` 的 7×7 特徵圖乘上分類頭權重、ReLU、正規化後以 jet 色階疊回影像。Demo 的 CAM 只反映**中心裁切**；`field_case/` 則對五個裁切分別輸出 CAM。

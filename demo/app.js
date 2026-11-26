@@ -405,12 +405,12 @@ function renderPrediction(probs, classIndex) {
   if (top < LOW_CONFIDENCE) {
     el.note.className = "note warn";
     el.note.textContent =
-      `信心偏低（${(top * 100).toFixed(1)}%）：可能是整株遠景、光線或角度造成特徵不足，先不要把它當成確定答案。建議補拍葉片正反面、果實或樹皮特寫。` +
+      `信心偏低（${(top * 100).toFixed(1)}%）：可能是整株遠景、光線或角度造成特徵不足，先不要把它當成確定答案。建議補拍葉片正反面、果實或樹皮特寫。CAM 僅反映中心裁切。` +
       (pairWarning ? " 榕樹與大葉欖仁在整株照上特別容易互判。" : "");
   } else {
     el.note.className = "note";
     el.note.textContent =
-      "熱區偏紅代表模型判讀時最依賴的位置。若熱區落在背景或周圍植被，表示模型可能受到場景線索影響。";
+      "熱區偏紅代表模型判讀時最依賴的位置。CAM 僅反映中心裁切，其餘四個裁切只參與 TTA 機率平均；若熱區落在背景或周圍植被，表示模型可能受到場景線索影響。";
   }
 }
 

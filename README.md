@@ -6,15 +6,17 @@
 
 ## 成果一覽
 
-測試集 214 張、7 類。checkpoint 依驗證集 macro F1 選取（early stopping，patience 6）。
+測試集 214 張、7 類。checkpoint 依驗證集 macro F1 選取（early stopping，patience 6）。目前所有已報告數字都是**隨機 split**；observation-level split 已建立但尚未重訓，因此該欄留「待重訓」，不把兩種切分混在一起。
 
-| 模型 | 測試 accuracy | macro F1 | 參數量 | 部署檔 |
-|---|---|---|---|---|
-| 基線 CNN（4 卷積塊 + GAP，從零訓練） | 81.78% | 81.76% | 1.18 M | — |
-| ResNet18 遷移學習（ImageNet 預訓練） | 92.99% | 92.95% | 11.18 M | 42.6 MiB fp32 ONNX |
-| └ INT8 靜態量化（QDQ） | 92.99% | 92.96% | 11.18 M | 10.8 MiB int8 ONNX |
+| 模型 | 隨機 split acc | 隨機 split macro F1 | observation split | 參數量 | 部署檔 |
+|---|---|---|---|---|---|
+| 基線 CNN（4 卷積塊 + GAP，從零訓練） | 81.78% | 81.76% | 待重訓 | 1.18 M | — |
+| ResNet18 遷移學習（ImageNet 預訓練） | 92.99% | 92.95% | 待重訓 | 11.18 M | 42.6 MiB fp32 ONNX |
+| └ INT8 靜態量化（QDQ） | 92.99% | 92.96% | 待重訓 | 11.18 M | 10.8 MiB int8 ONNX |
+| └ INT8 + 5-crop TTA（Demo） | 94.39% | 94.39% | 待重訓 | 11.18 M | 同上 |
 
-- 切分：train 1,714 / valid 215 / test 214（分層 80/10/10，seed `20261124`）。
+- 隨機切分：train 1,714 / valid 215 / test 214（分層 80/10/10，seed `20261124`）。
+- observation split：依 `manifest.csv` 的 `page_url` 分組，1,729 組、train 1,707 / valid 219 / test 217，0 組跨 split；定義在 [`splits_grouped.csv`](splits_grouped.csv)，統計在 [`grouped_split_stats.json`](results/grouped_split_stats.json)。
 - 量化前後幾乎無落差：torch 與 ONNX fp32 的最大 logit 差為 `1.3e-06`，INT8 與 fp32 的 accuracy 同為 92.99%。
 - Demo 使用 **5-crop TTA**（中心＋四角裁切平均 logits）：test 92.99% → **94.39%**、macro F1 92.96% → 94.39%；榕樹↔大葉欖仁互判由 6 件降到 5 件（[tta_metrics.json](results/tta_metrics.json)）。
 - 完整訓練曲線、混淆矩陣、per-class 指標、預測明細會寫到 `runs/`（`curves_*.png`、`confusion_*.png`、`per_class_*.csv`、`predictions_*.csv`、`metrics_test_*.json`）。
@@ -25,6 +27,7 @@
 
 - [metrics_test_onnx.json](results/metrics_test_onnx.json) — fp32／INT8 ONNX 的單張中心裁切指標
 - [tta_metrics.json](results/tta_metrics.json)、[threshold_sweep.md](results/threshold_sweep.md) — 5-crop TTA 與選擇性預測門檻
+- [guard_consistency.md](results/guard_consistency.md) — {center, TTA}×{0.5, 0.8} 的 coverage／selective acc／誤攔率；目前部署為 TTA + 0.8、無 crop 聯集
 - [per_class_resnet18_int8.csv](results/per_class_resnet18_int8.csv)、[predictions_resnet18_int8.csv](results/predictions_resnet18_int8.csv)
 - [confusion_resnet18_int8.png](results/confusion_resnet18_int8.png)
 - [gradcam_errors_resnet18_int8.png](results/gradcam_errors_resnet18_int8.png)、[gradcam_samples_resnet18_int8.png](results/gradcam_samples_resnet18_int8.png)
@@ -46,6 +49,27 @@
 
 ![ResNet18 INT8 誤判案例與 CAM](results/gradcam_errors_resnet18_int8.png)
 
+## 現場失敗案例（原圖重跑）
+
+使用者提供的兩張手機照（同一棵榕樹，2026-11-24 14:54）以部署版 INT8 模型重跑；TTA 為中心＋四角平均，CAM 只畫中心裁切。
+
+| 原始檔 | center top-1 | TTA top-1 | TTA 榕樹 / 欖仁 | 結果 |
+|---|---|---|---|---|
+| `IMG_20261124_145430` | 榕樹 66.2% | 榕樹 71.2% | 71.2% / 11.3% | 正確，但低於 0.8，會顯示補拍提示 |
+| `IMG_20261124_145433` | 大葉欖仁 49.8% | **榕樹 49.0%** | 49.0% / 32.6% | 重現誤判；TTA 把 top-1 翻回榕樹，但仍低於 0.8 |
+
+`145433` 的五個裁切 top-1 互相矛盾：中心是欖仁 49.8%，左上／右上則是榕樹 59.7%／69.3%，左下／右下又是欖仁 41.0%／44.0%。這是 TTA 能把結果翻回榕樹的原因，也說明這張圖在 224 解析度下缺乏足夠的鑑別特徵。
+
+![145433 的 5 個裁切與 per-crop CAM](results/field_case/IMG_20261124_145433_per_crop_cam.jpg)
+
+*上：五個裁切與各自 top-1；中：Ficus 類的 per-crop CAM；下：Terminalia 類的 per-crop CAM。*
+
+`145430` 五個裁切都是榕樹，TTA 71.2%，仍低於 0.8：
+
+![145430 的 5 個裁切與 per-crop CAM](results/field_case/IMG_20261124_145430_per_crop_cam.jpg)
+
+這與先前截圖的 73.6% 不完全相同（推測是縮放、裁切或不同快門），但決策方向一致：中心裁切偏欖仁、TTA 翻回榕樹，且兩張都會被 0.8 護欄要求補拍。原始數字在 [`field_case_predictions.json`](results/field_case/field_case_predictions.json)。
+
 ## 線上 Demo
 
 [https://xieih-tree7-species-classifier.static.hf.space](https://xieih-tree7-species-classifier.static.hf.space)
@@ -53,7 +77,7 @@
 上傳照片後在**瀏覽器內**完成推論，圖片不會上傳到伺服器：
 
 - Top-3 類別機率與中文名稱
-- CAM 熱區（`layer4` 的 7×7 特徵圖 × 分類頭權重，jet 色階疊回原圖）
+- CAM 熱區（`layer4` 的 7×7 特徵圖 × 分類頭權重；僅反映中心裁切，四角裁切只參與 TTA 機率平均）
 - 內建每類一張 test 範例，可直接點選試玩
 - top-1 低於 0.8 時顯示低信心提示，並建議補拍葉片、果實或樹皮特寫
 - 首次推論使用 5-crop TTA（中心＋四角），約 0.4 秒完成
@@ -239,6 +263,8 @@ python3 repair_manifest.py            # 以磁盤為準重建清單並稽核
 5. **地理偏斜**：熱帶與南半球觀察量大，台灣本地占比有限。要強化台灣街景，可用 iNaturalist 的 `place_id` 限定台灣再抓一輪。
 6. **解析度上限**：iNaturalist `large` 檔為長邊 1024 px；要原圖請加 `--inat-size original`（檔案量約 5 倍）。
 7. **僅供教學展示**：不能取代專業植物鑑定。
+8. **observation split 尚未重訓**：`manifest.csv` 有 414 組 `page_url` 含 2 張圖；隨機 split 可能讓同一觀察跨 train/test，因此 92.99%／94.39% 可能偏樂觀。`splits_grouped.csv` 已備好（1,729 組、0 跨組洩漏），重訓後才能填 observation 欄。
+9. **退化增強 fine-tune 未執行**：縮放＋模糊＋JPEG q30–50 的實驗需要訓練環境；等 field-set 到位後，再按取景×域分層回報。
 
 ## 擴大抓取
 

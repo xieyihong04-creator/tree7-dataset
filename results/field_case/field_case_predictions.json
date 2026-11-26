@@ -1,0 +1,106 @@
+{
+  "IMG_20261124_145430": {
+    "center": {
+      "Ficus_microcarpa": 0.6617,
+      "Terminalia_catappa": 0.1746,
+      "Araucaria_columnaris": 0.0212,
+      "Dypsis_lutescens": 0.0369,
+      "Strelitzia_reginae": 0.009,
+      "Drynaria_roosii": 0.0692,
+      "Acalypha_wilkesiana": 0.0274
+    },
+    "tta": {
+      "Ficus_microcarpa": 0.7116,
+      "Terminalia_catappa": 0.1126,
+      "Araucaria_columnaris": 0.013,
+      "Dypsis_lutescens": 0.0707,
+      "Strelitzia_reginae": 0.0191,
+      "Drynaria_roosii": 0.0284,
+      "Acalypha_wilkesiana": 0.0447
+    },
+    "per_crop": [
+      {
+        "top": "Ficus_microcarpa",
+        "p": 0.6617,
+        "ficus": 0.6617,
+        "terminalia": 0.1746
+      },
+      {
+        "top": "Ficus_microcarpa",
+        "p": 0.4836,
+        "ficus": 0.4836,
+        "terminalia": 0.2989
+      },
+      {
+        "top": "Ficus_microcarpa",
+        "p": 0.5229,
+        "ficus": 0.5229,
+        "terminalia": 0.1855
+      },
+      {
+        "top": "Ficus_microcarpa",
+        "p": 0.8792,
+        "ficus": 0.8792,
+        "terminalia": 0.0252
+      },
+      {
+        "top": "Ficus_microcarpa",
+        "p": 0.775,
+        "ficus": 0.775,
+        "terminalia": 0.0465
+      }
+    ]
+  },
+  "IMG_20261124_145433": {
+    "center": {
+      "Ficus_microcarpa": 0.3567,
+      "Terminalia_catappa": 0.4977,
+      "Araucaria_columnaris": 0.0106,
+      "Dypsis_lutescens": 0.0143,
+      "Strelitzia_reginae": 0.0143,
+      "Drynaria_roosii": 0.0222,
+      "Acalypha_wilkesiana": 0.0842
+    },
+    "tta": {
+      "Ficus_microcarpa": 0.4903,
+      "Terminalia_catappa": 0.3263,
+      "Araucaria_columnaris": 0.015,
+      "Dypsis_lutescens": 0.029,
+      "Strelitzia_reginae": 0.0162,
+      "Drynaria_roosii": 0.0384,
+      "Acalypha_wilkesiana": 0.0848
+    },
+    "per_crop": [
+      {
+        "top": "Terminalia_catappa",
+        "p": 0.4977,
+        "ficus": 0.3567,
+        "terminalia": 0.4977
+      },
+      {
+        "top": "Ficus_microcarpa",
+        "p": 0.5965,
+        "ficus": 0.5965,
+        "terminalia": 0.1965
+      },
+      {
+        "top": "Ficus_microcarpa",
+        "p": 0.6933,
+        "ficus": 0.6933,
+        "terminalia": 0.1465
+      },
+      {
+        "top": "Terminalia_catappa",
+        "p": 0.4095,
+        "ficus": 0.3531,
+        "terminalia": 0.4095
+      },
+      {
+        "top": "Terminalia_catappa",
+        "p": 0.4403,
+        "ficus": 0.3797,
+        "terminalia": 0.4403
+      }
+    ]
+  }
+}
