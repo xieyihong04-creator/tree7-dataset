@@ -111,7 +111,7 @@
         <div>
           <h2>模型與資料</h2>
           <ul class="facts">
-            <li><strong>架構</strong>ResNet18，ImageNet 預訓練；先凍結骨幹 3 epochs，再全模型微調 15 epochs</li>
+            <li><strong>架構</strong>ResNet18，ImageNet 預訓練；先凍結骨幹 3 epochs，再解凍微調 12 epochs（共 15）</li>
             <li><strong>資料</strong>Xieih/tree7，2,143 張、7 類；部署使用 observation split 1,707 / 219 / 217</li>
             <li><strong>測試集</strong>grouped n=217，center 92.63%、5-crop TTA 93.55%（macro F1 93.54%）</li>
             <li><strong>護欄</strong>TTA top-1 &lt; 0.85 顯示補拍提示；門檻由 grouped valid 選出</li>

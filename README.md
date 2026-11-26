@@ -114,7 +114,7 @@
 - 內建每類一張 test 範例，可直接點選試玩
 - top-1 低於 0.85 時顯示低信心提示，並建議補拍葉片、果實或樹皮特寫
 - 首次推論使用 5-crop TTA（中心＋四角），約 0.4 秒完成
-- 開頁只載入 UI；**第一次推論時**才下載 10.8 MiB 模型與 ORT wasm，之後模型存入瀏覽器 Cache Storage，重載不再下載
+- 開頁只載入 UI；**第一次推論時**才下載 10.8 MiB 模型與 ORT wasm，之後模型存入瀏覽器 Cache Storage（`tree7-model-v2`），重載不再下載
 - ONNX Runtime Web（wasm）搭配 `numThreads=1`，不需要 COOP/COEP 標頭，任何靜態主機都能跑
 
 ```mermaid
