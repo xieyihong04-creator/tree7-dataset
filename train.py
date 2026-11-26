@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import io
 import json
 import os
 import random
@@ -162,11 +163,42 @@ def check_class_names(pf, path: Path) -> None:
     log(f"  {path.name}: 類別順序驗證通過")
 
 
-def extract_parquet(parquet_dir: Path, images_dir: Path) -> list[dict]:
-    """把 parquet 內的 JPEG bytes 寫成 images/<split>/<class>/<sha1>.jpg。"""
+def load_grouped_metadata(manifest_path: Path, splits_path: Path):
+    """建立 (label, bytes, w, h) → manifest row 與 page_url → split 的查表。"""
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"找不到 manifest：{manifest_path}")
+    if not splits_path.exists():
+        raise FileNotFoundError(f"找不到 grouped split：{splits_path}")
+
+    manifest_by_key: dict[tuple[int, int, int, int], dict] = {}
+    with open(manifest_path, newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            key = (int(row["class_index"]), int(row["bytes"]), int(row["w"]), int(row["h"]))
+            prev = manifest_by_key.get(key)
+            if prev is not None and prev["page_url"] != row["page_url"]:
+                raise RuntimeError(f"manifest key 不唯一：{key} → {prev['page_url']} / {row['page_url']}")
+            manifest_by_key[key] = row
+
+    split_by_page: dict[str, str] = {}
+    with open(splits_path, newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            split_by_page[row["page_url"]] = row["split"]
+
+    log(f"grouped metadata：{len(manifest_by_key)} 個影像 key、{len(split_by_page)} 個 page_url")
+    return manifest_by_key, split_by_page
+
+
+def extract_parquet(parquet_dir: Path, images_dir: Path, manifest_by_key=None, split_by_page=None) -> list[dict]:
+    """把 parquet 內的 JPEG bytes 寫成 images/<split>/<class>/<sha1>.jpg。
+
+    指定 manifest_by_key 時使用 observation-level split：以
+    (label, bytes, width, height) 對回 manifest 的 page_url，再查 split。
+    """
     import pyarrow.parquet as pq
 
+    grouped = manifest_by_key is not None
     rows: list[dict] = []
+    missing: list[tuple] = []
     for split, files in SPLIT_FILES.items():
         for fname in files:
             path = parquet_dir / Path(fname).name
@@ -184,27 +216,53 @@ def extract_parquet(parquet_dir: Path, images_dir: Path) -> list[dict]:
                         continue
                     label = int(label)
                     cls = CLASSES[label]
+                    page_url = None
+                    if grouped:
+                        with Image.open(io.BytesIO(data)) as im:
+                            key = (label, len(data), im.width, im.height)
+                        meta = manifest_by_key.get(key)
+                        if meta is None:
+                            missing.append(key)
+                            continue
+                        page_url = meta["page_url"]
+                        split = split_by_page.get(page_url)
+                        if split is None:
+                            raise RuntimeError(f"page_url 不在 grouped split：{page_url}")
                     digest = hashlib.sha1(data).hexdigest()[:16]
                     rel = Path(split) / cls / f"{digest}.jpg"
                     out = images_dir / rel
                     if not out.exists():
                         out.parent.mkdir(parents=True, exist_ok=True)
                         out.write_bytes(data)
-                    rows.append(
-                        {"split": split, "label": label, "class_name": cls, "rel_path": str(rel)}
-                    )
+                    row = {"split": split, "label": label, "class_name": cls, "rel_path": str(rel)}
+                    if grouped:
+                        row["page_url"] = page_url
+                    rows.append(row)
                     n += 1
             log(f"  {Path(fname).name}: {n} 張")
+    if missing:
+        raise RuntimeError(f"{len(missing)} 張 parquet 影像無法對回 manifest，例如 {missing[:5]}")
     return rows
 
 
-def prepare_dataset(data_root: Path, force: bool = False) -> Path:
+def prepare_dataset(
+    data_root: Path,
+    force: bool = False,
+    split_mode: str = "parquet",
+    manifest_path: Path = Path("manifest.csv"),
+    splits_path: Path = Path("splits_grouped.csv"),
+) -> Path:
     """確保 data_root/images 與 index.csv 存在，回傳 index.csv 路徑。"""
     index_path = data_root / "index.csv"
     images_dir = data_root / "images"
-    if index_path.exists() and not force:
+    mode_path = data_root / "dataset_mode.txt"
+    if index_path.exists() and not force and mode_path.exists() and mode_path.read_text().strip() == split_mode:
         log(f"資料集已存在，略過下載：{index_path}")
         return index_path
+
+    manifest_by_key = split_by_page = None
+    if split_mode == "grouped":
+        manifest_by_key, split_by_page = load_grouped_metadata(manifest_path, splits_path)
 
     parquet_dir = data_root / "parquet"
     endpoint = fetch_remote_files(parquet_dir)
@@ -216,12 +274,23 @@ def prepare_dataset(data_root: Path, force: bool = False) -> Path:
         download_file(f"{endpoint}/datasets/{HF_REPO}/resolve/main/{fname}", dest)
 
     log("解包影像…")
-    rows = extract_parquet(parquet_dir, images_dir)
+    rows = extract_parquet(parquet_dir, images_dir, manifest_by_key, split_by_page)
     index_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = ["split", "label", "class_name", "rel_path"]
+    if split_mode == "grouped":
+        fieldnames.append("page_url")
+        group_splits: dict[str, set[str]] = {}
+        for row in rows:
+            group_splits.setdefault(row["page_url"], set()).add(row["split"])
+        leaks = [g for g, s in group_splits.items() if len(s) > 1]
+        if leaks:
+            raise RuntimeError(f"{len(leaks)} 個 page_url 跨 split，例如 {leaks[:3]}")
+        log(f"grouped split 驗證：{len(group_splits)} 組、0 跨組洩漏")
     with open(index_path, "w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=["split", "label", "class_name", "rel_path"])
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+    mode_path.write_text(split_mode)
 
     counts: dict[str, dict[str, int]] = {}
     for row in rows:
@@ -234,7 +303,7 @@ def prepare_dataset(data_root: Path, force: bool = False) -> Path:
         log(f"  {split}: {total} 張（{dist}）")
 
     with open(data_root / "dataset_summary.json", "w", encoding="utf-8") as fh:
-        json.dump({"classes": CLASSES, "counts": counts}, fh, ensure_ascii=False, indent=2)
+        json.dump({"split_mode": split_mode, "classes": CLASSES, "counts": counts}, fh, ensure_ascii=False, indent=2)
     return index_path
 
 
@@ -259,9 +328,50 @@ class TreeDataset(Dataset):
         return self.transform(image), row["label"]
 
 
-def build_transforms(img_size: int):
+class RandomJpeg:
+    """模擬手機／通訊軟體壓縮：隨機 JPEG quality。"""
+
+    def __init__(self, quality: tuple[int, int] = (30, 50), p: float = 0.5):
+        self.quality = quality
+        self.p = p
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        if random.random() >= self.p:
+            return img
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=random.randint(*self.quality))
+        buf.seek(0)
+        with Image.open(buf) as out:
+            return out.convert("RGB")
+
+
+class RandomDownscale:
+    """先縮小再放大，模擬遠景或低解析度。"""
+
+    def __init__(self, scale: tuple[float, float] = (0.35, 0.7), p: float = 0.5):
+        self.scale = scale
+        self.p = p
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        if random.random() >= self.p:
+            return img
+        w, h = img.size
+        s = random.uniform(*self.scale)
+        small = img.resize((max(1, int(w * s)), max(1, int(h * s))), Image.BILINEAR)
+        return small.resize((w, h), Image.BILINEAR)
+
+
+def build_transforms(img_size: int, degrade: bool = False):
+    pre = []
+    if degrade:
+        pre = [
+            RandomDownscale(p=0.5),
+            transforms.GaussianBlur(3, sigma=(0.5, 1.5)),
+            RandomJpeg(quality=(30, 50), p=0.5),
+        ]
     train_tf = transforms.Compose(
-        [
+        pre
+        + [
             transforms.RandomResizedCrop(img_size, scale=(0.65, 1.0), ratio=(0.8, 1.25)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(10),
@@ -281,14 +391,21 @@ def build_transforms(img_size: int):
     return train_tf, eval_tf
 
 
-def make_loaders(data_root: Path, index_path: Path, img_size: int, batch_size: int, workers: int):
+def make_loaders(
+    data_root: Path,
+    index_path: Path,
+    img_size: int,
+    batch_size: int,
+    workers: int,
+    degrade: bool = False,
+):
     rows_by_split: dict[str, list[dict]] = {"train": [], "valid": [], "test": []}
     with open(index_path, newline="", encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
             row["label"] = int(row["label"])
             rows_by_split[row["split"]].append(row)
 
-    train_tf, eval_tf = build_transforms(img_size)
+    train_tf, eval_tf = build_transforms(img_size, degrade=degrade)
     images_dir = data_root / "images"
     datasets = {
         "train": TreeDataset(rows_by_split["train"], images_dir, train_tf),
@@ -682,6 +799,12 @@ def main() -> int:
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--keep-data", action="store_true", help="Kernel 結束後保留暫存影像")
     parser.add_argument("--smoke", action="store_true", help="小樣本、低解析度快速測試")
+    parser.add_argument("--split-mode", choices=["parquet", "grouped"], default="parquet",
+                        help="parquet=原始隨機 split；grouped=依 page_url 的 observation split")
+    parser.add_argument("--manifest", type=Path, default=Path("manifest.csv"))
+    parser.add_argument("--splits", type=Path, default=Path("splits_grouped.csv"))
+    parser.add_argument("--degrade-epochs", type=int, default=0,
+                        help="在 resnet18 之後，用退化增強 fine-tune 的 epoch 數")
     args = parser.parse_args()
 
     if args.smoke:
@@ -693,6 +816,7 @@ def main() -> int:
         args.transfer_epochs = 1
         args.freeze_epochs = 0
         args.patience = 5
+        args.degrade_epochs = 0
         log("煙霧模式：每類別最多 40 張、1 epoch、96px")
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -703,7 +827,12 @@ def main() -> int:
     else:
         log("使用 CPU 訓練")
 
-    index_path = prepare_dataset(args.data_root)
+    index_path = prepare_dataset(
+        args.data_root,
+        split_mode=args.split_mode,
+        manifest_path=args.manifest,
+        splits_path=args.splits,
+    )
     if args.prepare_only:
         log("資料準備完成（--prepare-only）")
         return 0
@@ -738,6 +867,7 @@ def main() -> int:
             "repo": HF_REPO,
             "classes": CLASSES,
             "class_zh": CLASS_ZH,
+            "split_mode": args.split_mode,
             "splits": {s: len(datasets[s]) for s in ("train", "valid", "test")},
             "img_size": args.img_size,
         },
@@ -753,7 +883,8 @@ def main() -> int:
     results_dir = args.out
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    for tag in [m.strip() for m in args.models.split(",") if m.strip()]:
+    model_tags = [m.strip() for m in args.models.split(",") if m.strip()]
+    for tag in model_tags:
         log("=" * 70)
         log(f"訓練模型：{tag}")
         model = make_model(tag).to(device)
@@ -807,6 +938,73 @@ def main() -> int:
         del model
         if device.type == "cuda":
             torch.cuda.empty_cache()
+
+    if args.degrade_epochs > 0 and "resnet18" in model_tags:
+        base_ckpt = results_dir / "models" / "resnet18_best.pt"
+        if not base_ckpt.exists():
+            log("[resnet18_degrade] 找不到 resnet18_best.pt，跳過退化 fine-tune")
+        else:
+            log("=" * 70)
+            log(f"退化增強 fine-tune：resnet18_degrade（{args.degrade_epochs} epochs）")
+            model = make_model("resnet18").to(device)
+            model.load_state_dict(torch.load(base_ckpt, map_location=device)["state_dict"])
+            total_params, _ = count_params(model)
+            degrade_loaders, _, _ = make_loaders(
+                args.data_root, index_path, args.img_size, args.batch_size, args.workers, degrade=True
+            )
+            cfg = TrainConfig(
+                epochs=args.degrade_epochs,
+                batch_size=args.batch_size,
+                img_size=args.img_size,
+                lr=2e-4,
+                head_lr=2e-4,
+                backbone_lr=2e-4,
+                patience=min(4, args.patience),
+                freeze_epochs=0,
+                seed=args.seed,
+                workers=args.workers,
+                time_budget_min=args.time_budget_min,
+                amp=True,
+            )
+            set_seed(args.seed)
+            fit_result = fit(model, "resnet18_degrade", degrade_loaders, device, cfg, results_dir)
+
+            ckpt_path = results_dir / "models" / "resnet18_degrade_best.pt"
+            if ckpt_path.exists():
+                model.load_state_dict(torch.load(ckpt_path, map_location=device)["state_dict"])
+                metrics = evaluate_and_save(
+                    model, "resnet18_degrade", loaders["test"], datasets["test"], device, cfg, results_dir
+                )
+                with open(results_dir / "history_resnet18_degrade.csv", "w", newline="", encoding="utf-8") as fh:
+                    writer = csv.DictWriter(fh, fieldnames=list(fit_result["history"][0].keys()))
+                    writer.writeheader()
+                    writer.writerows(fit_result["history"])
+                plot_curves(fit_result["history"], "resnet18_degrade", results_dir)
+                results["models"]["resnet18_degrade"] = {
+                    "params": total_params,
+                    "best_val_f1": round(fit_result["best"]["f1"], 4),
+                    "best_epoch": fit_result["best"]["epoch"],
+                    "train_time_sec": fit_result["train_time_sec"],
+                    "init_checkpoint": "resnet18_best.pt",
+                    "degrade": {"downscale": [0.35, 0.7], "blur_sigma": [0.5, 1.5], "jpeg_quality": [30, 50]},
+                    "config": {
+                        "epochs": cfg.epochs,
+                        "freeze_epochs": cfg.freeze_epochs,
+                        "batch_size": cfg.batch_size,
+                        "img_size": cfg.img_size,
+                        "label_smoothing": cfg.label_smoothing,
+                    },
+                    **metrics,
+                }
+                log(
+                    f"[resnet18_degrade] 測試 accuracy={metrics['test_accuracy']:.4f} "
+                    f"macro_f1={metrics['test_macro_f1']:.4f}"
+                )
+            else:
+                log("[resnet18_degrade] 沒有可用的 checkpoint，跳過測試評估")
+            del model
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
 
     if results["models"]:
         tags = list(results["models"])
