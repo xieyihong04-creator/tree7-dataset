@@ -1,0 +1,66 @@
+{
+  "split": "grouped",
+  "n_valid": 219,
+  "n_test": 217,
+  "torch": {
+    "accuracy": 0.9263,
+    "macro_f1": 0.9266,
+    "n": 217
+  },
+  "onnx_fp32": {
+    "accuracy": 0.9263,
+    "macro_f1": 0.9266,
+    "n": 217
+  },
+  "onnx_int8_center": {
+    "accuracy": 0.9263,
+    "macro_f1": 0.9263,
+    "n": 217
+  },
+  "onnx_int8_tta": {
+    "accuracy": 0.9355,
+    "macro_f1": 0.9354,
+    "n": 217
+  },
+  "valid_center": {
+    "accuracy": 0.8858,
+    "macro_f1": 0.8876,
+    "n": 219
+  },
+  "valid_tta": {
+    "accuracy": 0.9132,
+    "macro_f1": 0.9138,
+    "n": 219
+  },
+  "selected_threshold_center": 0.8,
+  "selected_threshold_tta": 0.85,
+  "mutual_confusion_ficus_terminalia": {
+    "center": {
+      "n": 5,
+      "terminalia_to_ficus": 1,
+      "ficus_to_terminalia": 4
+    },
+    "tta": {
+      "n": 4,
+      "terminalia_to_ficus": 1,
+      "ficus_to_terminalia": 3
+    }
+  },
+  "deployment": {
+    "mode": "tta",
+    "threshold": 0.85,
+    "crop_union": false
+  },
+  "guard": {
+    "mode": "TTA",
+    "t": 0.85,
+    "coverage": 0.53,
+    "selective_acc": 1.0,
+    "blocked": 0.47,
+    "false_block": 0.4335,
+    "caught_errors": 14,
+    "errors": 14,
+    "extra": "無",
+    "state": "目前部署"
+  }
+}

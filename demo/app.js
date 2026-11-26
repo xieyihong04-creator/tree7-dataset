@@ -1,9 +1,9 @@
 /* tree7 static demo: ONNX Runtime Web (single-thread wasm) + CAM overlay. */
 
-const MODEL_URL = "model.onnx";
+const MODEL_URL = "model.onnx?v=2";
 const CONFIG_URL = "config.json";
 const IMG_SIZE = 224;
-const LOW_CONFIDENCE = 0.8;
+const LOW_CONFIDENCE = 0.85;
 const CONFUSABLE_CLASSES = new Set(["Ficus_microcarpa", "Terminalia_catappa"]);
 
 const state = {
@@ -127,7 +127,7 @@ async function loadModel() {
     let cached = null;
     if ("caches" in window) {
       try {
-        cache = await caches.open("tree7-model-v1");
+        cache = await caches.open("tree7-model-v2");
         cached = await cache.match(modelUrl);
       } catch (error) {
         console.warn("模型快取讀取失敗", error);
@@ -545,7 +545,7 @@ function setupEvents() {
 async function init() {
   setupEvents();
   try {
-    const response = await fetch(CONFIG_URL);
+    const response = await fetch(CONFIG_URL, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     state.config = await response.json();
     renderClasses();

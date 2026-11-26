@@ -1,0 +1,74 @@
+[
+  {
+    "mode": "TTA",
+    "t": 0.5,
+    "coverage": 0.7696,
+    "selective_acc": 0.988,
+    "blocked": 0.2304,
+    "false_block": 0.1872,
+    "caught_errors": 12,
+    "errors": 14,
+    "extra": "crop top-1 一致",
+    "state": "未部署"
+  },
+  {
+    "mode": "TTA",
+    "t": 0.5,
+    "coverage": 0.8618,
+    "selective_acc": 0.9786,
+    "blocked": 0.1382,
+    "false_block": 0.0985,
+    "caught_errors": 10,
+    "errors": 14,
+    "extra": "無",
+    "state": "未部署"
+  },
+  {
+    "mode": "TTA",
+    "t": 0.8,
+    "coverage": 0.6221,
+    "selective_acc": 1.0,
+    "blocked": 0.3779,
+    "false_block": 0.335,
+    "caught_errors": 14,
+    "errors": 14,
+    "extra": "無",
+    "state": "未部署（覆蓋率較高）"
+  },
+  {
+    "mode": "TTA",
+    "t": 0.85,
+    "coverage": 0.53,
+    "selective_acc": 1.0,
+    "blocked": 0.47,
+    "false_block": 0.4335,
+    "caught_errors": 14,
+    "errors": 14,
+    "extra": "無",
+    "state": "目前部署"
+  },
+  {
+    "mode": "center",
+    "t": 0.5,
+    "coverage": 0.8618,
+    "selective_acc": 0.9786,
+    "blocked": 0.1382,
+    "false_block": 0.0896,
+    "caught_errors": 12,
+    "errors": 16,
+    "extra": "無",
+    "state": "歷史參考"
+  },
+  {
+    "mode": "center",
+    "t": 0.8,
+    "coverage": 0.659,
+    "selective_acc": 1.0,
+    "blocked": 0.341,
+    "false_block": 0.2886,
+    "caught_errors": 16,
+    "errors": 16,
+    "extra": "無",
+    "state": "未部署"
+  }
+]

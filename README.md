@@ -8,67 +8,83 @@
 
 測試集：隨機 split 214 張、observation split 217 張，7 類。checkpoint 依驗證集 macro F1 選取（early stopping，patience 6）。兩種切分分欄報告，不混用。
 
-| 模型 | 隨機 split acc | 隨機 split macro F1 | observation acc | observation macro F1 | 參數量 |
+| 模型 | 隨機 split acc（歷史） | 隨機 split macro F1（歷史） | observation acc | observation macro F1 | 參數量 |
 |---|---|---|---|---|---|
 | 基線 CNN（4 卷積塊 + GAP，從零訓練） | 81.78% | 81.76% | 77.42% | 77.18% | 1.18 M |
 | ResNet18 遷移學習（ImageNet 預訓練） | 92.99% | 92.95% | 92.63% | 92.66% | 11.18 M |
-| └ INT8 靜態量化（QDQ） | 92.99% | 92.96% | 待量化 | 待量化 | 11.18 M |
-| └ INT8 + 5-crop TTA（Demo） | 94.39% | 94.39% | 待量測 | 待量測 | 11.18 M |
+| └ INT8 靜態量化（QDQ） | 92.99% | 92.96% | **92.63%** | **92.63%** | 11.18 M |
+| └ INT8 + 5-crop TTA（Demo） | 94.39% | 94.39% | **93.55%** | **93.54%** | 11.18 M |
 | └ ResNet18 + 退化增強 fine-tune | — | — | 92.17% | 92.21% | 11.18 M |
 
-- 隨機切分：train 1,714 / valid 215 / test 214（分層 80/10/10，seed `20261124`）。
+- 隨機切分（**歷史**）：train 1,714 / valid 215 / test 214（分層 80/10/10，seed `20261124`）；不再作為部署依據。
 - observation split：依 `manifest.csv` 的 `page_url` 分組，1,729 組、train 1,707 / valid 219 / test 217，0 組跨 split；定義在 [`splits_grouped.csv`](splits_grouped.csv)，統計在 [`grouped_split_stats.json`](results/grouped_split_stats.json)。
-- observation split 已於 2026-11-26 重訓完成，三個模型的新 test 各只評估一次；輸出在 [`results/observation_split/`](results/observation_split/)。
-- 量化前後幾乎無落差：torch 與 ONNX fp32 的最大 logit 差為 `1.3e-06`，INT8 與 fp32 的 accuracy 同為 92.99%（隨機 split）。
-- Demo 使用 **5-crop TTA**（中心＋四角裁切平均 logits）：隨機 split test 92.99% → **94.39%**、macro F1 92.96% → 94.39%；榕樹↔大葉欖仁互判由 6 件降到 5 件（[tta_metrics.json](results/tta_metrics.json)）。
+- observation split 已重訓、匯出與量化；新 test 只評估一次，輸出在 [`results/observation_split/`](results/observation_split/)。Demo 目前載入的是 grouped INT8 模型（`model.onnx?v=2`），不是隨機 split 的舊模型。
+- 量化前後幾乎無落差（grouped）：torch 與 ONNX fp32 的 test accuracy 都是 92.63%，INT8 center 也是 92.63%；TTA 為 93.55%（n=217）。
+- 部署門檻改為 **TTA + 0.85**（grouped valid 選出）：grouped test coverage 53.00%、selective accuracy 100%、攔到 14/14 錯誤；UI、config 與護欄表一致。
+- 榕樹↔大葉欖仁互判在 observation split 下 center 5 件、TTA 4 件；不與隨機 split 的舊數字直接相減。
 - 完整訓練曲線、混淆矩陣、per-class 指標、預測明細會寫到 `runs/`（`curves_*.png`、`confusion_*.png`、`per_class_*.csv`、`predictions_*.csv`、`metrics_test_*.json`）。
 
 ## 評估結果
 
-以部署版 INT8 ONNX（`demo/model.onnx`）在官方 test split 上重算，前處理為 `Resize(255) + CenterCrop(224)`，結果與訓練報告一致：accuracy 92.99%、macro F1 92.96%，214 張中 15 張誤判。Demo 另外使用 5-crop TTA，把 test accuracy 提升到 94.39%（12 個錯誤），valid 從 94.88% 提升到 95.81%。完整輸出在 [`results/`](results/)：
+### grouped observation split（部署版，n=217）
 
-- [metrics_test_onnx.json](results/metrics_test_onnx.json) — fp32／INT8 ONNX 的單張中心裁切指標
-- [tta_metrics.json](results/tta_metrics.json)、[threshold_sweep.md](results/threshold_sweep.md) — 5-crop TTA 與選擇性預測門檻
-- [guard_consistency.md](results/guard_consistency.md) — {center, TTA}×{0.5, 0.8} 的 coverage／selective acc／誤攔率；目前部署為 TTA + 0.8、無 crop 聯集
-- [per_class_resnet18_int8.csv](results/per_class_resnet18_int8.csv)、[predictions_resnet18_int8.csv](results/predictions_resnet18_int8.csv)
-- [confusion_resnet18_int8.png](results/confusion_resnet18_int8.png)
-- [gradcam_errors_resnet18_int8.png](results/gradcam_errors_resnet18_int8.png)、[gradcam_samples_resnet18_int8.png](results/gradcam_samples_resnet18_int8.png)
+以 grouped INT8 ONNX（`demo/model.onnx`，`?v=2`）在 observation split 的 test 上推論；前處理為 `Resize(255) + CenterCrop(224)`，TTA 為中心＋四角共 5 個 224 crop 的平均 logits。這個 test 只評估一次：
 
-| 類別 | precision | recall | F1（INT8） | F1（fp32） | test 張數 |
-|---|---|---|---|---|---|
-| 榕樹 | 0.839 | 0.839 | 0.839 | 0.839 | 31 |
-| 大葉欖仁 | 0.962 | 0.833 | 0.893 | 0.877 | 30 |
-| 柱狀南洋杉 | 1.000 | 0.935 | 0.967 | 0.967 | 31 |
-| 散尾葵 | 0.909 | 0.968 | 0.938 | 0.952 | 31 |
-| 鶴望蘭 | 0.968 | 1.000 | 0.984 | 0.984 | 30 |
-| 槲蕨 | 0.938 | 0.968 | 0.952 | 0.952 | 31 |
-| 紅桑 | 0.906 | 0.967 | 0.935 | 0.935 | 30 |
-| **macro avg** | 0.9315 | 0.9299 | **0.9296** | 0.9295 | 214 |
+| 模式 | accuracy | macro F1 | 錯誤數 | 互判（榕樹↔欖仁） |
+|---|---|---|---|---|
+| INT8 center | 92.63% | 92.63% | 16 / 217 | 5 |
+| INT8 + 5-crop TTA | **93.55%** | **93.54%** | **14 / 217** | 4 |
 
-![ResNet18 INT8 混淆矩陣](results/confusion_resnet18_int8.png)
+- 量化前後一致：torch、ONNX fp32、INT8 center 的 grouped test accuracy 都是 92.63%；INT8 沒有可測到的落差。
+- 部署門檻為 **TTA + 0.85**（grouped valid 選出）：test coverage 53.00%、selective accuracy 100%、攔到 14/14 錯誤；代價是誤攔 43.35% 的正確樣本。完整權衡見 [`guard_consistency.md`](results/observation_split/guard_consistency.md)。
 
-主要誤判集中在榕樹與大葉欖仁：大葉欖仁有 5 張被判成榕樹（recall 0.833 最低），榕樹則有 1 張被判成欖仁；榕樹另有 2 張被分到散尾葵。鶴望蘭 30 張全數正確。下方 CAM 誤判圖可對照模型實際關注的位置。
+| 類別 | precision | recall | F1 | support |
+|---|---|---|---|---|
+| 榕樹 | 0.871 | 0.871 | 0.871 | 31 |
+| 大葉欖仁 | 0.853 | 0.935 | 0.892 | 31 |
+| 柱狀南洋杉 | 1.000 | 0.935 | 0.967 | 31 |
+| 散尾葵 | 0.938 | 0.968 | 0.952 | 31 |
+| 鶴望蘭 | 0.968 | 1.000 | 0.984 | 30 |
+| 槲蕨 | 0.941 | 1.000 | 0.970 | 32 |
+| 紅桑 | 1.000 | 0.839 | 0.912 | 31 |
+| **macro avg** | 0.939 | 0.935 | **0.935** | 217 |
 
-![ResNet18 INT8 誤判案例與 CAM](results/gradcam_errors_resnet18_int8.png)
+主要誤判仍是榕樹與大葉欖仁：TTA 下榕樹 recall 0.871、紅桑 recall 0.839；兩類互判 4 件。輸出在 [`results/observation_split/`](results/observation_split/)：
 
-### observation split（新 test 只評一次）
+- [metrics_test_onnx.json](results/observation_split/metrics_test_onnx.json) — center／TTA、fp32／INT8、互判與部署門檻
+- [threshold_sweep.md](results/observation_split/threshold_sweep.md)、[guard_consistency.md](results/observation_split/guard_consistency.md)
+- [per_class_resnet18_int8.csv](results/observation_split/per_class_resnet18_int8.csv)、[predictions_resnet18_int8.csv](results/observation_split/predictions_resnet18_int8.csv)
+- [confusion_resnet18_int8.png](results/observation_split/confusion_resnet18_int8.png)
+
+<details>
+<summary>隨機 split 的舊結果（214 張，僅供歷史追溯）</summary>
+
+以舊版隨機 split INT8 模型推論：center accuracy 92.99%、macro F1 92.96%（15 個錯誤）；5-crop TTA 94.39%（12 個錯誤）。舊版部署門檻是 TTA + 0.8。這些數字與 grouped test 不是同一份資料，不能直接相減或宣稱進步／退步。完整輸出仍保留在 [`results/`](results/) 與 [`results/README.md`](results/README.md) 的「隨機 split」段落。
+
+</details>
+
+### observation split（訓練結果）
 
 依 `page_url` 分組、1,729 組、test 217 張，重訓後只評估一次：
 
-| 模型 | accuracy | macro F1 | 榕樹↔欖仁互判 |
+| 模型 | accuracy | macro F1 | 互判（榕樹↔欖仁） |
 |---|---|---|---|
 | 基線 CNN | 77.42% | 77.18% | 5 |
-| ResNet18 | 92.63% | 92.66% | 3 |
+| ResNet18（torch） | 92.63% | 92.66% | 3 |
+| INT8 center | 92.63% | 92.63% | 5 |
+| INT8 + 5-crop TTA | **93.55%** | **93.54%** | 4 |
 | ResNet18 + 退化增強 | 92.17% | 92.21% | 4 |
 
 - 相較隨機 split，基線下降 4.36 個百分點、ResNet18 下降 0.36；基線對同一觀察的重複影像較敏感。
-- ResNet18 的榕樹／欖仁互判從 6 件降到 3 件，但榕樹 recall 仍只有 0.871（31 張中 4 張錯）。
+- 榕樹／欖仁互判在 **observation split 下** center 3 件、TTA 4 件；不與隨機 split 的 6 件直接比較。榕樹 recall 仍只有 0.871（31 張中 4 張錯）。
 - 退化增強（縮放 0.35–0.7、Gaussian blur、JPEG q30–50）在**乾淨 test** 上是 92.17%，沒有超越原 ResNet18；它是否在手機遠景／壓縮照上較穩，仍待 field-set 分層評估。
-- 輸出：[results.json](results/observation_split/results.json)、[metrics](results/observation_split/metrics_test_resnet18.json)、[per-class](results/observation_split/per_class_resnet18.csv)、[混淆矩陣](results/observation_split/confusion_resnet18.png)、[訓練曲線](results/observation_split/curves_resnet18.png)。
+- 輸出：[results.json](results/observation_split/results.json)、[per-class](results/observation_split/per_class_resnet18.csv)、[混淆矩陣](results/observation_split/confusion_resnet18.png)、[訓練曲線](results/observation_split/curves_resnet18.png)。
 
 ## 現場失敗案例（原圖重跑）
 
-使用者提供的兩張手機照（同一棵榕樹，2026-11-24 14:54）以部署版 INT8 模型重跑；TTA 為中心＋四角平均，CAM 只畫中心裁切。
+> 這一節目前是**舊隨機 split 模型**的結果；新的 grouped INT8 模型重跑待兩張原始手機照重新上傳後更新，不能把舊表的 0.8 門檻當成目前部署值。
+
+使用者提供的兩張手機照（同一棵榕樹，2026-11-24 14:54）以舊部署版 INT8 模型重跑；TTA 為中心＋四角平均，CAM 只畫中心裁切。
 
 | 原始檔 | center top-1 | TTA top-1 | TTA 榕樹 / 欖仁 | 結果 |
 |---|---|---|---|---|
@@ -96,7 +112,7 @@
 - Top-3 類別機率與中文名稱
 - CAM 熱區（`layer4` 的 7×7 特徵圖 × 分類頭權重；僅反映中心裁切，四角裁切只參與 TTA 機率平均）
 - 內建每類一張 test 範例，可直接點選試玩
-- top-1 低於 0.8 時顯示低信心提示，並建議補拍葉片、果實或樹皮特寫
+- top-1 低於 0.85 時顯示低信心提示，並建議補拍葉片、果實或樹皮特寫
 - 首次推論使用 5-crop TTA（中心＋四角），約 0.4 秒完成
 - 開頁只載入 UI；**第一次推論時**才下載 10.8 MiB 模型與 ORT wasm，之後模型存入瀏覽器 Cache Storage，重載不再下載
 - ONNX Runtime Web（wasm）搭配 `numThreads=1`，不需要 COOP/COEP 標頭，任何靜態主機都能跑
@@ -181,9 +197,11 @@ python3 export_onnx.py --ckpt runs/models/resnet18_best.pt --data-root data/tree
 匯出的 wrapper 同時輸出 `logits`（分類）與 `features`（`layer4` 的 `[1, 512, 7, 7]` 特徵圖），讓前端不需另外跑一次模型即可畫 CAM。腳本會：
 
 1. 匯出 fp32 ONNX（opset 17），驗證 torch／ONNX fp32 的 logit 一致性；
-2. 用 256 張 train 影像做 static QDQ INT8 量化；
+2. 用 train 影像做 static QDQ INT8 量化（部署版是 grouped train 128 張；原始 `export_onnx.py` 預設隨機 split 256 張）；
 3. 在 test 集上比對 torch、fp32、INT8 三者的 accuracy / macro F1；
 4. 寫出 `demo/model_fp32.onnx`、`demo/model.onnx`、`demo/fc_weights.json`、`demo/config.json` 與 7 張 `demo/examples/*.jpg`。
+
+> 部署版由 Kaggle 的 `tree7-export-grouped` kernel 產生：掛載 `tree7-grouped` 的 checkpoint，以 grouped train 校準，並在同一次 grouped test 推論中計算 center／TTA。`export_onnx.py` 保留作為原始隨機 split 的匯出範例，預設不是 grouped。
 
 ### 本機跑 Demo
 
@@ -273,7 +291,7 @@ python3 repair_manifest.py            # 以磁盤為準重建清單並稽核
 
 ## 已知限制
 
-1. **只有 7 類**：不在類別內（含同屬其他種）的植物，模型仍會給出其中一類的機率，Demo 不具備真正的「未知」拒絕能力；top-1 < 0.8 只是低信心護欄。
+1. **只有 7 類**：不在類別內（含同屬其他種）的植物，模型仍會給出其中一類的機率，Demo 不具備真正的「未知」拒絕能力；top-1 < 0.85 只是低信心護欄。
 2. **整株遠景不可靠**：test 隨機切分以葉片特寫為主，整株／樹冠照的現場表現明顯較差。榕樹與大葉欖仁會互判——實際案例中，一張整株榕樹被預測為大葉欖仁 73.6%（榕樹僅 14.4%）。中心裁切 224×224 會丟掉葉形、果實與樹皮等關鍵特徵；5-crop TTA 只能小幅改善，無法修正這類分佈外照片。
 3. **取景混雜**：整株、樹冠、葉／果特寫都有，榕樹類約 4 成是葉近拍。做「通用」辨識是好事，做整株專用模型時需再過濾一輪。
 4. **情境偏城市**：多為公園、路樹、校園、庭園，森林原生境與遠景小樹覆蓋率低。

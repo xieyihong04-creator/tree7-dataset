@@ -21,8 +21,8 @@
       <h1>校園樹種辨識</h1>
       <p>ResNet18 遷移學習 · 7 類常見樹種 · 瀏覽器內即時推論</p>
       <div class="badges">
-        <span>test accuracy 92.99%</span>
-        <span>macro F1 92.96%</span>
+        <span>grouped TTA 93.55%</span>
+        <span>center 92.63%</span>
         <span>INT8 ONNX · 11 MB</span>
       </div>
     </div>
@@ -112,9 +112,10 @@
           <h2>模型與資料</h2>
           <ul class="facts">
             <li><strong>架構</strong>ResNet18，ImageNet 預訓練；先凍結骨幹 3 epochs，再全模型微調 15 epochs</li>
-            <li><strong>資料</strong>Xieih/tree7，2,143 張、7 類，切分 1,714 / 215 / 214</li>
-            <li><strong>測試集</strong>accuracy 92.99%、macro F1 92.96%</li>
-            <li><strong>部署</strong>INT8 靜態量化 ONNX（10.8 MiB），ONNX Runtime Web 單執行緒 CPU 推論</li>
+            <li><strong>資料</strong>Xieih/tree7，2,143 張、7 類；部署使用 observation split 1,707 / 219 / 217</li>
+            <li><strong>測試集</strong>grouped n=217，center 92.63%、5-crop TTA 93.55%（macro F1 93.54%）</li>
+            <li><strong>護欄</strong>TTA top-1 &lt; 0.85 顯示補拍提示；門檻由 grouped valid 選出</li>
+            <li><strong>部署</strong>INT8 靜態量化 ONNX（10.8 MiB，`?v=2`），ONNX Runtime Web 單執行緒 CPU 推論</li>
             <li><strong>熱區</strong>layer4 的 7×7 特徵圖 × 分類頭權重，上採樣後以 jet colormap 疊圖</li>
           </ul>
         </div>

@@ -1,0 +1,35 @@
+{
+  "overall": {
+    "test_center": {
+      "accuracy": 0.9263,
+      "macro_f1": 0.9263,
+      "n": 217
+    },
+    "test_tta": {
+      "accuracy": 0.9355,
+      "macro_f1": 0.9354,
+      "n": 217
+    }
+  },
+  "selected": {
+    "center": 0.8,
+    "tta": 0.85
+  },
+  "mutual_confusion_ficus_terminalia": {
+    "center": {
+      "n": 5,
+      "terminalia_to_ficus": 1,
+      "ficus_to_terminalia": 4
+    },
+    "tta": {
+      "n": 4,
+      "terminalia_to_ficus": 1,
+      "ficus_to_terminalia": 3
+    }
+  },
+  "crop_warning": {
+    "crop_disagreement_rate": 0.2258,
+    "errors_total": 14,
+    "errors_flagged": 12
+  }
+}
